@@ -1,0 +1,703 @@
+<html>
+
+<head>
+<meta http-equiv="Content-Language" content="en-us">
+<meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
+<title>New Page 1</title>
+</head>
+
+<body>
+
+<h2>Introduction</h2>
+<p>This is yet another in the series of concept pieces regard what I call 
+&quot;<a href="http://www.higherorderprogramming.com/">Higher Order Programming</a>&quot; - the concept that a program's behavior should be 
+implemented as pluggable micro-services.&nbsp; After various iterations and 
+playing around with different concepts, I think I've finally achieved my goal.&nbsp; 
+What are those goals?</p>
+<h3>Goals</h3>
+<ul>
+	<li><u>Context Computing</u></li>
+</ul>
+<p>The first goal is to move away from imperative workflow-based processing.&nbsp; 
+Throughout this article I'll be using a web server as an example:</p>
+<p><img border="0" src="Workflow1.png" width="529" height="154"></p>
+<p>In a context-computing architecture, the process would look like this:</p>
+<p><img border="0" src="Workflow2.png" width="226" height="394"></p>
+<ul>
+	<li><u>Aspect Oriented</u></li>
+</ul>
+<p><img border="0" src="space_odyssey.jpg" width="307" height="200"></p>
+<p><i>In computing, aspect-oriented programming (AOP) is a programming paradigm 
+that aims to increase modularity by allowing the separation of cross-cutting 
+concerns. It does so by adding additional behavior to existing code (an advice) 
+without modifying the code itself, instead separately specifying which code is 
+modified via a &quot;pointcut&quot; specification, such as &quot;log all function calls when 
+the function's name begins with 'set'&quot;. This allows behaviors that are not 
+central to the business logic (such as logging) to be added to a program without 
+cluttering the code, core to the functionality. - </i>
+<a href="https://en.wikipedia.org/wiki/Aspect-oriented_programming">wikipedia</a></p>
+<p>A detailed description of AOP can be found
+<a href="https://flowframework.readthedocs.io/en/stable/TheDefinitiveGuide/PartIII/AspectOrientedProgramming.html">
+here</a>.</p>
+<p>I've not been a fan of AOP in the past because it is not directly supported 
+by .NET languages and is typically relegated to logging or 
+authorization/authentication cross-cutting.&nbsp; .NET implementations require 
+either a pre-compiler step or post-compiler IL injection.&nbsp; Conversely, in a 
+context-driven environment, cross-cutting of concerns is effectively built in -- 
+each of the blocks in the previous diagram is a &quot;concern&quot; that &quot;cuts&quot; into the 
+processing of the data given a specific context.&nbsp; So, for example (ok, I'm 
+using logging here), I can easily add the cross-cutting behavior of logging and 
+blacklist logic by adding &quot;listeners&quot; to specific context:</p>
+<p><img border="0" src="Workflow3.png" width="401" height="394"></p>
+<p>As in 2001: A Space Odyssey, the application is built up from autonomous 
+modules.&nbsp; Furthermore, by defining the context &quot;tag&quot; in metadata, it 
+becomes trivial to rewire the data flow:</p>
+<p><img border="0" src="crosscutting1.png" width="401" height="139">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </p>
+<p><img border="0" src="Crosscutting2.png" width="400" height="137"></p>
+<p>In the above diagram, the authorization success/fail response is routed to 
+the Blacklist Logic which then places successes back into the context router for 
+the Routing module to pick up.&nbsp; Also, similar to the HAL computer in 2001: 
+A Space Odyssey, if you &quot;unplug&quot; a module, it doesn't necessarily cripple the 
+entire application, it's just that some aspect of the application no longer 
+functions.</p>
+<ul>
+	<li><u>Autonomous and Asynchronous</u></li>
+</ul>
+<p>In my opinion, synchronous programming is passé.&nbsp; Processes should be 
+small, autonomous, and asynchronous.&nbsp; There's considerable implications to 
+asynchronous programming of course (managing state, thread locks, performance, 
+etc.) however, asynchronous functions in the world of Higher Order Programming 
+is the goal.&nbsp; Autonomous functions is a critical aspect of that -- a 
+function should be given everything that it needs to perform its function -- if 
+it needs something else, that becomes another asynchronous request handled by 
+the context router, which eventually merges all the necessary data together 
+for further processing.</p>
+<ul>
+	<li><u>Distributable</u></li>
+</ul>
+<p>A side-effect of an asynchronous, context-computing architecture is that 
+distributing work to other servers is just another set of components that talk 
+to each other.&nbsp; Example:</p>
+<p><img border="0" src="Distributed.png" width="713" height="436"></p>
+<ul>
+	<li><u>Micro-services</u></li>
+</ul>
+<p>Another side-effect of context-computing is that each process is basically a 
+micro-service -- it does one thing and is invoked only as needed.&nbsp; A 
+ridiculous example:</p>
+<pre>private static void MainPage(HttpContext context)
+{
+  context.Response.Write(&quot;&lt;p&gt;Hello World!&lt;/p&gt;&quot;);
+}</pre>
+<p>Of course, getting that example to work from an IIS <code>IHttpAsyncHandler 
+BeginProcessRequest</code> call-into in an asynchronous manner that waits for any other 
+asynchronous processes that it initiates takes a bit of work, which we'll dive 
+into later.</p>
+<ul>
+	<li><u>Map, Reduce, Filter</u></li>
+</ul>
+<p>The last side-effect of context-computing is that processes perform very 
+simple map, reduce, and/or filter operations.&nbsp; Mapping is the process of 
+taking a set of data and transforming each item into a different item.&nbsp; A trivial example:</p>
+<pre>public List&lt;int&gt; Add(List&lt;int&gt; items, int n)
+{
+  List&lt;int&gt; newItems = new List&lt;int&gt;();
+  items.ForEach(v =&gt; newItems.Add(v + n));
+
+  return newItems;
+}</pre>
+<p>Reduce is the process of taking a set of data and reducing it into a smaller 
+set or single data point (typically called aggregation.)&nbsp; A simple example:</p>
+<pre>public int GetTotal(List&lt;int&gt; items)
+{
+  return items.Sum();
+}</pre>
+<p>Filtering is the process of eliminating specific 
+data from a set of data.&nbsp; A simple example:</p>
+<pre>public List&lt;int&gt; ItemsLargerThan(List&lt;int&gt; items, int n)
+{
+  var newItems = items.Where(v =&gt; v &gt; n).ToList();
+
+  return newItems;
+}</pre>
+<p>Even statements like <code>if</code> and <code>switch-case</code> are forms 
+of filtering in imperative code.</p>
+<ul>
+	<li><u>Testability</u></li>
+</ul>
+<p>No, I don't mean that this architecture is easily made fun of.&nbsp; Testing 
+in a context-computing architecture becomes trivial in some ways -- it is very 
+easy to replace a module with a mock behavior.&nbsp; Injecting test data also 
+becomes quite simple, and you can test specific sections of the application by 
+removing or disabling specific components.&nbsp; The resulting output can be 
+routed to separate test verification modules.&nbsp; Conversely, testing in a 
+multi-threaded environment has its own complexities, though one of the artifacts 
+if this kind of environment is that you can turn off the asynchronous behavior 
+and instead have all the modules process synchronously.&nbsp; This makes it a 
+lot easier.&nbsp; For example:</p>
+<p><img border="0" src="Testing1.png" width="401" height="256"></p>
+<h3>A Word of Warning</h3>
+<p>Thinking in terms of a context-computing architecture rather than an 
+imperative (or even functional) workflow architecture is a bit of a mind warp.&nbsp; 
+It's a totally different way of dong things.&nbsp; Instead of:</p>
+<ol>
+	<li>I need this data</li>
+	<li>Get it</li>
+	<li>Do something with it</li>
+	<li>And call some other things that are part of the workflow 
+	<ol>
+		<li>That ironically I'm responsible for calling as well.</li>
+	</ol>
+	</li>
+</ol>
+<p>Item 3 in combination with 4.1 is the sign of entangled but very typical 
+(usually junior-level) programming.&nbsp; A better approach, but still very linear and inflexible, is:</p>
+<ol>
+	<li>I've been called</li>
+	<li>Get some data R0.</li>
+	<li>Call function A with R0 and get results R1 back.</li>
+	<li>Call function B with R1 and get results R2 back.</li>
+	<li>Call function C with R2 and get results R3 back.</li>
+	<li>Call function D that saves R3 somewhere.</li>
+</ol>
+<p>The mindset in context-computing is:</p>
+<ol>
+	<li>Oh, I'm supposed to do something with this data R0 <i>that's been handed 
+	to me</i>.&nbsp; </li>
+	<li>Transform it into R1.</li>
+	<li>Post R1 for something else <i>that I don't care about to continue the 
+	process</i>.</li>
+</ol>
+<h2>The Basics of a Context-Computing Web Server under IIS</h2>
+<p>A useful example is in implementing a web server.&nbsp; The advantages of 
+implementing the web server over IIS relate to features such as automatic 
+encryption of responses, Server Name Identification (<a href="https://en.wikipedia.org/wiki/Server_Name_Indication">SNI</a>) 
+SSL certificate management and authentication/authorization.&nbsp; 
+Besides, people seem more comfortable hosting a website using IIS rather than 
+implementing a web server from scratch.&nbsp; There are a lot of steps that IIS 
+performs:</p>
+<p><img border="0" src="iis1.png" width="733" height="562"></p>
+<p>(from <a href="https://msdn.microsoft.com/en-us/library/bb470252.aspx">
+ASP.NET Application Life Cycle Overview for IIS 7.0</a>)</p>
+<p>Step 15, which I've circled, is the step we're intercepting and handling with 
+the &quot;context computing.&quot;</p>
+<p>We need to do three things:</p>
+<ol>
+	<li>Instantiate the Context Computing engine for the lifetime of the app 
+	domain.</li>
+	<li>If step 1 instantiated the engine, we need to register our context 
+	listeners.</li>
+	<li>Call the engine when we receive a &nbsp;<code>BeginProcessRequest</code> </li>
+</ol>
+<p>If you're new to how this works, please review my article
+<a href="https://www.codeproject.com/Articles/1195643/Developing-Non-ASP-NET-Websites-running-under-IIS">
+Developing Non-ASP.NET Websites running under IIS</a>.</p>
+<h3>The Handler Class</h3>
+<p>IIS instantiates the handler class whenever a request is made.</p>
+<pre>public class Handler : IHttpAsyncHandler
+{
+  public bool IsReusable { get { return true; } }
+  private static ContextRouter contextRouter;
+
+  /// &lt;summary&gt;
+  /// Public constructor that invokes the internal constructor with the initialization method.
+  /// &lt;/summary&gt;
+  public Handler() : this(InitializeContextRouter)
+  {
+    // A less convoluted approach simply calles InitializeContextRouter here.
+  }
+
+  /// &lt;summary&gt;
+  /// Given the initialization method, this constructor is called with the function provided
+  /// in the above constructor.
+  /// &lt;/summary&gt;
+  internal Handler(Action initializeContextRouter)
+  {
+    initializeContextRouter();
+  }
+...</pre>
+<h3>Initializing the Context Router</h3>
+<p>In this implementation, the public constructor specifies the method that will 
+be called in the internal constructor:</p>
+<pre>/// &lt;summary&gt;
+/// Now we initialize our state, which means creating the ContextRouter if it doesn't exist.
+/// &lt;/summary&gt;
+private static void InitializeContextRouter()
+{
+  // If we don't have a context router for this session lifetime, create it now.
+  if (contextRouter == null)
+  {
+    contextRouter = new ContextRouter();
+    InitializeContextRouter(contextRouter);
+    contextRouter.Run();
+  }
+}</pre>
+<p>Static fields, such as <code>contextRouter</code>, are valid for the life of 
+the application domain, 
+so the only time <code>contextRouter</code> is null is when IIS restarts the application.&nbsp; 
+Refer to
+<a href="https://stackoverflow.com/questions/8919095/lifetime-of-asp-net-static-variable">
+this SO post</a>: &quot;<i>Static variables persist for the life of the app domain. 
+So the two things that will cause your static variables to 'reset' is an app 
+domain restart or the use of a new class.&nbsp; You can't prevent the loss of 
+static variables from an app domain restart, but you can try to avoid it from 
+class replacement. You could put your static variables in a class that is not an 
+aspx page and is not in the App_Code directory. You might want to place them on 
+a static class somewhere in your program.</i>&quot;</p>
+<h3>Using a TaskCompletionSource</h3>
+<p>The actual handler methods are quite interesting:</p>
+<pre>public IAsyncResult BeginProcessRequest(HttpContext httpContext, AsyncCallback callback, Object extraData)
+{
+  TaskCompletionSource&lt;bool&gt; tcs = new TaskCompletionSource&lt;bool&gt;();
+  Task t = tcs.Task;
+
+  t.ContinueWith(_ =&gt;
+  {
+     ... call the context router
+     callback(t);
+  });
+
+  tcs.SetResult(true);
+
+  return t;
+}
+
+public void EndProcessRequest(IAsyncResult result)
+{
+  // Technically unnecessary because we know the task completed since the callback was invoked.
+  ((Task)result).Wait();  
+}</pre>
+<p>I've removed the call to the context router so we can focus just on what Begin 
+and End are doing.&nbsp; Notice in <code>BeginProcessRequest</code>, a task is created, the 
+callback is invoked, and the task instance <code>t</code> is returned, given 
+control back to ASP.NET.&nbsp; The brilliance of this code is:</p>
+<ol>
+	<li>This works because <code>Task</code> implements <code>IAsyncResult</code>.</li>
+<li>By setting using <code>TaskCompletionSource</code>, we have access to the underlying 
+<code>Task</code> which we can use in the <code>callback</code>.</li>
+	<li>When the <code>TaskCompletionSource</code>'s result is set to true, the <code>ContinueWith</code> 
+	is executed asynchronously, allowing us to return from the 
+	<code>BeginProcessingRequest</code> call.</li>
+</ol>
+<p>Personally, I would not have figured this out at all if it weren't for 
+<a href="https://stackoverflow.com/a/6389323/2276361">this helpful SO post</a>.</p>
+<h3>Calling the Context Router</h3>
+<p>The body of the task being run is:</p>
+<pre>object asyncContext = new object();
+contextRouter.Publish(&quot;Test&quot;, httpContext, asyncContext);
+contextRouter.WaitForCompletion(asyncContext);
+contextRouter.Cleanup(asyncContext);</pre>
+<p>The steps here are:</p>
+<ol>
+	<li>Create some object that is used to associate all asynchronous processes 
+	with the current request.</li>
+	<li>Publish a request by some context name, passing in as a tuple the data 
+	that the request handler is expecting as well as the async request context.</li>
+	<li>Wait for all processes that were asynchronously initiated to complete.</li>
+	<li>Do cleanup.</li>
+</ol>
+<p>I'll go into all of this shortly.</p>
+<p>Creating the handler must be done in a class (for reasons explained later) 
+that implements the public method Execute:</p>
+<pre>public class HelloWorld : IContextComputingListener
+{
+  public void Execute(ContextRouter router, ContextItem item, HttpContext httpContext)
+  {
+    httpContext.Response.Write(&quot;&lt;p&gt;Hello World!&lt;/p&gt;&quot;);
+  }
+}</pre>
+<p>The parameter signature must include the first two parameters, <code>ContextRouter 
+router, ContextItem item</code>, and the third parameter is the instance of the data 
+that is passed to the listener.&nbsp; In this case, it's simply the <code>HttpContext</code> 
+instance.</p>
+<p>Registering the actual context listener is straight forward:</p>
+<pre>contextRouter.Register(&quot;Test&quot;, new HelloWorld());</pre>
+<p>Before going into the details of what's going on in the context router, the 
+result is:</p>
+<p><img border="0" src="demo1.png" width="244" height="63"></p>
+<h2>Configuring the Context Router</h2>
+<p>There are a variety of ways of configuring the context router so that it 
+knows about context, listeners associated with those contexts, and types that 
+are associated with contexts.</p>
+<h3>Associating Type with Context Name</h3>
+<p>The above example explicitly states the context that we want to have handle 
+the data.&nbsp; An alternative is to associate <i>types</i> with contexts:</p>
+<pre>contextRouter.AssociateType(typeof(HttpContext), &quot;Test&quot;);</pre>
+<p>or if you prefer the generic version:</p>
+<pre>contextRouter.AssociateType&lt;HttpContext&gt;(&quot;Test&quot;);</pre>
+<p>This indicates that whenever data of type <code>HttpContext</code> is published:</p>
+<pre>contextRouter.Publish(httpContext, asyncContext);</pre>
+<p>it's routed to handlers in the &quot;Test&quot; context.</p>
+<h3>Instantiating the Handler On Demand</h3>
+<p>A final option is, instead of registering a context with the listener instance 
+as I did above:</p>
+<pre>contextRouter.Register(&quot;Test&quot;, new HelloWorld());</pre>
+<p>Instead, the context is associated with the listener type, which is 
+instantiated on demand:</p>
+<pre>contextRouter.Register(&quot;Test&quot;, typeof(HelloWorld));</pre>
+<p>or the generic version:</p>
+<pre>contextRouter.Register&lt;HelloWorld&gt;(&quot;Test&quot;);</pre>
+<h2>Waiting for Completion Of All Work</h2>
+<p>Let's take a contrived example that has four listeners, some of which 
+simulate doing some work for some time:</p>
+<p><img border="0" src="waiting1.png" width="387" height="394"></p>
+<p>Here, the Hello World listener explicitly publishes to the Wait1 context, 
+which then sleeps for 500 ms before publishing to the Wait2 context.&nbsp; There 
+are two listeners for Wait2, one of which sleeps for 500 ms.&nbsp; Each listener 
+writes some data to the <code>HttpContext</code>.</p>
+<p>The implementation looks like this:</p>
+<pre>public class HelloWorld : IContextComputingListener
+{
+  public void Execute(ContextRouter router, ContextItem item, HttpContext httpContext)
+  {
+    httpContext.Response.Write(String.Format(&quot;&lt;p&gt;{0} Hello World!&lt;/p&gt;&quot;, DateTime.Now.ToString(&quot;ss.fff&quot;)));
+    router.Publish(&quot;Wait1&quot;, httpContext, item.AsyncContext);
+  }
+}
+
+public class Wait1 : IContextComputingListener
+{
+  public void Execute(ContextRouter router, ContextItem item, HttpContext httpContext)
+  {
+    Thread.Sleep(500);
+    httpContext.Response.Write(String.Format(&quot;&lt;p&gt;{0} Wait 1&lt;/p&gt;&quot;, DateTime.Now.ToString(&quot;ss.fff&quot;)));
+    router.Publish(&quot;Wait2&quot;, httpContext, item.AsyncContext);
+  }
+}
+
+public class Wait2 : IContextComputingListener
+{
+  public void Execute(ContextRouter router, ContextItem item, HttpContext httpContext)
+  {
+    Thread.Sleep(500);
+    httpContext.Response.Write(String.Format(&quot;&lt;p&gt;{0} Wait 2&lt;/p&gt;&quot;, DateTime.Now.ToString(&quot;ss.fff&quot;)));
+  }
+}
+
+public class Wait2Again : IContextComputingListener
+{
+  public void Execute(ContextRouter router, ContextItem item, HttpContext httpContext)
+  {
+    httpContext.Response.Write(String.Format(&quot;&lt;p&gt;{0} Wait 2 again&lt;/p&gt;&quot;, DateTime.Now.ToString(&quot;ss.fff&quot;)));
+  }
+}</pre>
+<p>Let's look briefly at how this is registered:</p>
+<pre>private static void InitializeContextRouter(ContextRouter contextRouter) 
+{
+  contextRouter.AssociateType&lt;HttpContext&gt;(&quot;Test&quot;)
+    .Register&lt;HelloWorld&gt;(&quot;Test&quot;)
+    .Register&lt;Wait1&gt;(&quot;Wait1&quot;)
+    .Register&lt;Wait2&gt;(&quot;Wait2&quot;)
+    .Register&lt;Wait2Again&gt;(&quot;Wait2&quot;);
+}</pre>
+<p>Here:</p>
+<ol>
+	<li>The <code>HttpContext</code> type is associated with the Test context.</li>
+	<li>The Test context is handled by the <code>HelloWorld</code> listener.</li>
+	<li>The <code>Wait1</code> listener handles the Wait1 context.</li>
+	<li>The <code>Wait2</code> and Wait2Again</code> listeners handle the Wait2 context.</li>
+</ol>
+<p>Here's the result -- note the timestamps:</p>
+<p><img border="0" src="demo2.png" width="252" height="204"></p>
+<h3>Under the Hood</h3>
+<p><img border="0" src="workflow4.png" width="554" height="425"></p>
+<p>You might imagine that at some point there is a call to <code>Task.WaitAll()</code> to 
+signal that all tasks created when the process is kicked off have completed.&nbsp; 
+This however is not the case.&nbsp; The task isn't actually created until the 
+context router dequeues the work, but we need to know that a work was queued so 
+that the request doesn't complete before all tasks, even those in the queue 
+waiting to be to dequeued, have completed.&nbsp; Therefore, each work item is 
+associated with an <code>EventWaitHandle</code> in the unsignaled state before 
+they are queued.&nbsp; The wait handle is signaled only when the work item is 
+done.&nbsp; Furthermore, while waiting for work to be done, that work might (as 
+the example above illustrates in <code>Wait1</code>) publish some data after a 
+period of time.&nbsp; So in the above example:</p>
+<ol>
+	<li>&quot;Test&quot; is published.&nbsp; Wait handles = 1 awaiting for <code>HelloWorld</code> to 
+	complete.</li>
+	<li><code>HelloWorld</code> publishes Wait1 and exits.&nbsp; Wait handles = 
+	2 awaiting for Wait1 to complete, The HelloWorld handle is signaled.</li>
+	<li><code>Wait1</code> sleeps then publishes &quot;Wait2&quot; and exits.&nbsp; Wait handles = 
+	4 
+	awaiting for <code>Wait2</code> and Wait2Again to complete.&nbsp; The Wait1 and HelloWorld 
+	handles are signaled.</li>
+	<li><code>Wait2</code> and <code>Wait2Again</code> are executed together on 
+	separate threads.&nbsp; At this point:<ol>
+	<li>HelloWorld: signaled</li>
+	<li>Wait1: signaled</li>
+	<li>Wait2 : reset</li>
+	<li>Wait2Again: reset</li>
+</ol></li>
+	<li>Wait2Again writes to the response stream and exits, but...</li>
+	<li>Wait2 is sleeping and signals after exiting.</li>
+</ol>
+<p>In order to ensure that all tasks have been completed, we have to check if 
+new tasks (via their wait handles) were added after a task completes:</p>
+<pre>public void WaitForCompletion(object asyncContext)
+{
+  int n1;
+  int n2 = contextThreads[asyncContext].Count;
+
+  do
+  {
+    n1 = n2;
+    WaitHandle.WaitAll(contextThreads[asyncContext].ToArray());
+    n2 = contextThreads[asyncContext].Count;
+  } while (n1 != n2 &amp;&amp; n2 != 0);
+}</pre>
+<p>Looking just at step 1 above, <code>HelloWorld</code> published something that resulted in queuing work 
+and creating a new wait handle for that work to complete.&nbsp; So initially, n2 
+== 1, when <code>HelloWorld</code> exited, n2 == 2 and therefore the do-while re-enters 
+waiting for all wait handles to be signaled.&nbsp; This should explain why we 
+created an &quot;asyncContext&quot; object when the process was kicked off:</p>
+<pre>object asyncContext = new object();</pre>
+<p>All tasks writing to the HttpContext response stream indicate that they are 
+working within this async context, hence the async context is passed back when 
+publishing:</p>
+<pre>router.Publish(&quot;Wait1&quot;, httpContext, item.AsyncContext);</pre>
+<h4>Publishing</h4>
+<p>Publishing enqueues work to be done with each listener interested in the 
+context to which the work or data type is associated:</p>
+<pre>private void Enqueue(IContextComputingListener listener, ContextItem contextItem, object data)
+{
+  var waitHandler = new EventWaitHandle(false, EventResetMode.ManualReset);
+  AddContextThreadWaiter(contextItem.AsyncContext, waitHandler);
+  contextPool.Enqueue((contextItem, listener.instance, data, waitHandler));
+}</pre>
+<p>Once queued, the semaphore blocking the context router from processing work 
+is released.&nbsp; Note how the wait handle is registered right at this point, so that even if 
+the work hasn't been dequeued yet, we'll wait.</p>
+<h4>Context Router Dequeue</h4>
+<p>The context router waits for queued work in its own task and when work is 
+present, invokes the listener (the routing has at this point already been 
+determined during the publish phase and any on-demand listeners have been 
+instantiated):</p>
+<pre>public void Run()
+{
+  Task.Run(() =&gt;
+  {
+    while (true)
+    {
+      semQueue.Wait();
+      contextPool.TryDequeue(out (ContextItem contextItem, IContextComputingListener listener, object data, EventWaitHandle waitHandle) item);
+      Task.Run(() =&gt; InvokeListener(item.contextItem, item.listener, item.data, item.waitHandle));
+    }
+  });
+}</pre>
+<h4>Invoking the Listener</h4>
+<p>This method uses runtime binding to invoke the listener's method so that it 
+receives the data in the type it is expecting.&nbsp; This is another wart -- the 
+published data associated with the listening context must be of the type 
+expected by the Execute method.</p>
+<pre>private void InvokeListener(ContextItem contextItem, IContextComputingListener listener, object data, EventWaitHandle waitHandle)
+{
+  // Use runtime binding to invoke the Execute method.
+  Type t = listener.GetType();
+  MethodInfo mi = t.GetMethod(&quot;Execute&quot;, BindingFlags.Instance | BindingFlags.Public);
+
+  try
+  {
+    mi.Invoke(listener, new object[] { this, contextItem, data });
+  }
+  catch (TargetInvocationException ex)
+  {
+    OnException?.Invoke(this, new ContextExceptionInfo(ex.InnerException, data, contextItem.AsyncContext));
+  }
+  catch (Exception ex2)
+  {
+    OnException?.Invoke(this, new ContextExceptionInfo(ex2, data, contextItem.AsyncContext));
+  }
+
+  waitHandle.Set();
+}</pre>
+<p>Note how the wait handle associated with this task is signaled when the work 
+completes.</p>
+<h4>Handling Listener Exceptions</h4>
+<p>Exceptions are caught here and posted to an event listener.&nbsp; So, given:</p>
+<pre>contextRouter.OnException += (router, info) =&gt; OnException((ContextRouter)router, info);</pre>
+<p>with:</p>
+<pre>private static void OnException(ContextRouter router, ContextExceptionInfo info)
+{
+  if (info.Data is HttpContext)
+  {
+    ((HttpContext)info.Data).Response.Write(&quot;&lt;p&gt;&lt;font color='red'&gt;&quot; + info.Exception.Message + &quot;&lt;/font&gt;&lt;/p&gt;&quot;);
+  }
+}</pre>
+<p>Let's force an exception in <code>HelloWorld</code> which handles the Test context:</p>
+<pre>public void Execute(ContextRouter router, ContextItem item, HttpContext httpContext)
+{
+  httpContext.Response.Write(String.Format(&quot;&lt;p&gt;{0} Hello World!&lt;/p&gt;&quot;, DateTime.Now.ToString(&quot;ss.fff&quot;)));
+  router.Publish(&quot;Wait1&quot;, httpContext, item.AsyncContext);
+  throw new Exception(&quot;Oops&quot;);
+}</pre>
+<p>Here's the result:</p>
+<p><img border="0" src="demo3.png" width="249" height="234"></p>
+<p>There's no reason why the exception event handler couldn't publish the 
+exception on the same async context or another context to fully utilize the AOP 
+capability of implementing handlers that log the exception.&nbsp; Also note that 
+because the exception was thrown after publishing Wait1, all the other work is 
+still performed.&nbsp; If the exception was thrown before Wait1 was published, 
+then you would see:</p>
+<p><img border="0" src="demo4.png" width="248" height="134"></p>
+<h4>Data Type Mismatch Exceptions</h4>
+<p>Let's say that <code>Wait2Again</code> specified the wrong parameter in its <code>Execute</code> 
+method:</p>
+<pre>public void Execute(ContextRouter router, ContextItem item, Foo foo)</pre>
+<p>What we see then is this:</p>
+<p><img border="0" src="demo5.png" width="497" height="233"></p>
+<p>As mentioned earlier, the fact that this error can only be caught at runtime 
+is in my opinion a wart of the system.</p>
+<h2>Triggering Work When All Data is Present</h2>
+<p>Listeners are intended to act like &quot;fire and forget&quot; however in real life a 
+listener might &quot;publish&quot; several contextual-data items that, only when all data 
+has been obtained, another listener is invoked.&nbsp; <i>This behavior is 
+triggered by the context router itself when all the data in specific contexts 
+exists.</i>&nbsp; Here's a simple and hopefully not too contrived scenario: a 
+page needs data from two different queries.&nbsp; We'll simulate queries with 
+in-memory data and delays.&nbsp; Given a page request (ignoring URL routing for 
+what page is making the request) we want to:</p>
+<ol>
+	<li>Asynchronously query for people.</li>
+<li>Asynchronously query for types of pets</li>
+	<li>When both queries complete, the page is rendered.</li>
+</ol>
+<p>People and types of pets are not associated, so there's no join going on here 
+-- we're demonstrating waiting for both queries to complete to render the page.&nbsp; 
+And unlike real life where you'd probably use AJAX to populate the HTML tables, 
+we're rendering everything server-side.&nbsp; In an imperative workflow, this 
+might look something like this:</p>
+<pre>var people = await GetPeopleAsync();
+var pets = await GetPetsAsync();
+Render(people, pets);</pre>
+<p>Remember where I said the context-computing is a bit of a mind warp?&nbsp; 
+This is a good example.&nbsp; In this context-computing architecture, we register four listeners:</p>
+<pre>contextRouter
+  .AssociateType&lt;HttpContext&gt;(&quot;GetPage&quot;)
+  .Register&lt;HelloWorld&gt;(&quot;GetPage&quot;)
+  .Register&lt;GetPeople&gt;(&quot;GetPeople&quot;)
+  .Register&lt;GetPets&gt;(&quot;GetPets&quot;)
+  .TriggerOn&lt;Render&gt;(&quot;People&quot;, &quot;Pets&quot;, &quot;GetPage&quot;);</pre>
+<p>That last listener, Render, is triggered when the data in three contexts have 
+been published: &quot;People&quot;, &quot;Pets&quot;, and &quot;GetPage&quot;.&nbsp; 
+We certainly <u>do not</u> want to use <code>HttpContext.Current</code> as 
+ASP.NET may start up another thread to get other parts of the page.</p>
+<p>The <code>HelloWorld</code> listener simply publishes two data-contexts &quot;GetPeople&quot; and &quot;GetPets&quot;</p>
+<pre>httpContext.Response.Write(String.Format(&quot;&lt;p&gt;{0} Hello World!&lt;/p&gt;&quot;, DateTime.Now.ToString(&quot;ss.fff&quot;)));
+router.Publish(&quot;GetPeople&quot;, null, item.AsyncContext);
+router.Publish(&quot;GetPets&quot;, null, item.AsyncContext);</pre>
+<p>This asynchronously invokes the <code>GetPeople</code> and <code>GetPets</code> listeners.</p>
+<pre>public class GetPeople : IContextComputingListener
+{
+  public void Execute(ContextRouter router, ContextItem item)
+  {
+    // Simulate having queried people:
+    var people = new People();
+    // Simulate the query having taken some time.
+    Thread.Sleep(250);
+    router.Publish(&quot;People&quot;, people, item.AsyncContext);
+  }
+}
+
+public class GetPets : IContextComputingListener
+{
+  public void Execute(ContextRouter router, ContextItem item)
+  {
+    // Simulate having queried people:
+    var pets = new Pets();
+    // Simulate the query having taken some time.
+    Thread.Sleep(750);
+    router.Publish(&quot;Pets&quot;, pets, item.AsyncContext);
+  }
+}</pre>
+<p>These two methods simulate obtaining the data and publishing the results.&nbsp; 
+There are no direct listeners for the contexts &quot;People&quot; and &quot;Pets&quot;, but the 
+<code>Render</code> listener is triggered once these two contexts are published:</p>
+<pre>public class Render : IContextComputingListener
+{
+  public void Execute(ContextRouter router, ContextItem item, People people, Pets pets, HttpContext httpContext)
+  {
+    StringBuilder sb = new StringBuilder();
+
+    sb.Append(&quot;&lt;table style='border: 1px solid black; display:inline-table;'&gt;&quot;);
+    people.GetPeople().ForEach(p =&gt; sb.Append(&quot;&lt;tr&gt;&lt;td&gt;&quot; + p + &quot;&lt;/td&gt;&lt;/tr&gt;&quot;));
+    sb.Append(&quot;&lt;/table&gt;&quot;);
+
+    sb.Append(&quot;&amp;nbsp;&quot;); 
+
+    sb.Append(&quot;&lt;table style='border: 1px solid black; display:inline-table;'&gt;&quot;);
+    pets.GetPets().ForEach(p =&gt; sb.Append(&quot;&lt;tr&gt;&lt;td&gt;&quot; + p + &quot;&lt;/td&gt;&lt;/tr&gt;&quot;));
+    sb.Append(&quot;&lt;/table&gt;&quot;);
+
+    httpContext.Response.Write(sb.ToString());
+  }
+}</pre>
+<p>The result is:</p>
+<p><img border="0" src="demo6.png" width="242" height="251"></p>
+<h3>Extending the Example</h3>
+<p>Earlier I said that there were no direct listeners to the &quot;People&quot; and &quot;Pets&quot; 
+contexts.&nbsp; Let's add listeners to these contexts that tells us how many 
+people and pets are in each respective table:</p>
+<pre>public class CountPeople : IContextComputingListener
+{
+  public void Execute(ContextRouter router, ContextItem item, People people, HttpContext httpContext)
+  {
+    httpContext.Response.Write(String.Format(&quot;&lt;p&gt;There are {0} people.&lt;/p&gt;&quot;, people.GetPeople().Count));
+  }
+}
+
+public class CountPets : IContextComputingListener
+{
+  public void Execute(ContextRouter router, ContextItem item, Pets people, HttpContext httpContext)
+  {
+    httpContext.Response.Write(String.Format(&quot;&lt;p&gt;There are {0} pet types.&lt;/p&gt;&quot;, people.GetPets().Count));
+  }
+}</pre>
+<p>Then, we add triggers to indicate that when [&quot;People&quot; and &quot;GetPage&quot;] and 
+[&quot;Pets&quot; and &quot;GetPage&quot;] are available, the associated listener it invoked, so now 
+the context router initialization has two additional <code>TriggerOn</code> calls:</p>
+<pre> contextRouter
+  .AssociateType&lt;HttpContext&gt;(&quot;GetPage&quot;)
+  .Register&lt;HelloWorld&gt;(&quot;GetPage&quot;)
+  .Register&lt;GetPeople&gt;(&quot;GetPeople&quot;)
+  .Register&lt;GetPets&gt;(&quot;GetPets&quot;)
+  .TriggerOn&lt;Render&gt;(&quot;People&quot;, &quot;Pets&quot;, &quot;GetPage&quot; )
+
+  .TriggerOn&lt;CountPeople&gt;(&quot;People&quot;, &quot;GetPage&quot;)
+  .TriggerOn&lt;CountPets&gt;(&quot;Pets&quot;, &quot;GetPage&quot;);</pre>
+<p>This renders as:</p>
+<p><img border="0" src="demo7.png" width="246" height="322"></p>
+<p>This should be fairly mind warping -- by adding a couple listener classes and 
+the triggers that invokes those listeners, we've added additional behavior to 
+the rendering of the page!</p>
+<h4>Asynchronous Timing and Output</h4>
+<p>There's no particular reason why the count of people, pets and the tables 
+appears in the particular order that they do except as a result of the flukes of 
+the order in which the listeners are triggered (people before pets) and the time 
+it takes to create the HTML for the tables.&nbsp; If we delay the output of the 
+<code>CountPeople</code> listener, you'll observe a different rendering:</p>
+<p><img border="0" src="demo8.png" width="248" height="321"></p>
+<p>Also, <code>Response.Write</code> is not thread safe but we're getting lucky 
+- these calls should really be wrapped in a <code>lock</code> statement, which 
+brings up the all important point that if you're manipulating, particularly for 
+output, an object that is used by multiple listeners they need to be thread 
+safe.</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>Context name in metadata</p>
+<h2>What About the Context Name Being a String?</h2>
+<p>Design Tool (UI)</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+
+</body>
+
+</html>
