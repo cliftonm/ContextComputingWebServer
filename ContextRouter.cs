@@ -74,33 +74,36 @@ public class Trigger
     public ConcurrentDictionary<object, List<PendingContext>> AsyncPendingContexts { get; protected set; } = new ConcurrentDictionary<object, List<PendingContext>>();
 
     // Master list.
-    private List<PendingContext> pendingContexts = new List<PendingContext>();
+    private List<PendingContext> masterPendingContexts = new List<PendingContext>();
 
     public Type ListenerType { get; protected set; }
 
     public Trigger(string[] contexts, Type listenerType)
     {
         ListenerType = listenerType;
-        contexts.ForEach(c => pendingContexts.Add(new PendingContext(c)));
+        contexts.ForEach(c => masterPendingContexts.Add(new PendingContext(c)));
     }
 
     public void Post(string context, object data, object asyncContext)
     {
         List<PendingContext> pendingContexts;
 
-        lock (AsyncPendingContexts)
+        if (masterPendingContexts.Any(mpc => mpc.ContextName == context))
         {
-            if (!AsyncPendingContexts.TryGetValue(asyncContext, out pendingContexts))
+            lock (AsyncPendingContexts)
             {
-                // This async context gets its clone from the master list.
-                pendingContexts = new List<PendingContext>(this.pendingContexts);
-                AsyncPendingContexts[asyncContext] = pendingContexts;
+                if (!AsyncPendingContexts.TryGetValue(asyncContext, out pendingContexts))
+                {
+                    // This async context gets its clone from the master list.
+                    pendingContexts = new List<PendingContext>(masterPendingContexts);
+                    AsyncPendingContexts[asyncContext] = pendingContexts;
+                }
             }
-        }
 
-        lock (pendingContexts)
-        {
-            pendingContexts.SingleOrDefault(c => c.ContextName == context)?.Post(data);
+            lock (pendingContexts)
+            {
+                pendingContexts.SingleOrDefault(c => c.ContextName == context).Post(data);
+            }
         }
     }
 }
