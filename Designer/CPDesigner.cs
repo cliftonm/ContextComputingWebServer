@@ -11,23 +11,20 @@ namespace Designer
 {
     public partial class CPDesigner : Form
     {
-        private ContextRouter otherContextRouter;
-        private ContextRouter myContextRouter;
-
         public CPDesigner()
         {
-            AppDomain.CurrentDomain.ReflectionOnlyAssemblyResolve += ReflectionOnlyAssemblyResolve;
-            otherContextRouter = Listeners.Listeners.InitializeContext();
             InitializeComponent();
-            myContextRouter = InitializeMyContextRouter();
+
+            AppDomain.CurrentDomain.ReflectionOnlyAssemblyResolve += ReflectionOnlyAssemblyResolve;
+            ContextRouter otherContextRouter = Listeners.Listeners.InitializeContext();
+            ContextRouter myContextRouter = InitializeMyContextRouter();
+
+            WireUpEvents(myContextRouter, otherContextRouter);
             myContextRouter.Run();
 
             myContextRouter.Publish(nameof(ShowListeners), lbListeners);
             myContextRouter.Publish(nameof(ShowContexts), (otherContextRouter, lbContexts));
             myContextRouter.Publish(nameof(ShowTypeMaps), (otherContextRouter, lbContextTypeMaps));
-
-            lbListeners.SelectedIndexChanged += (_, __) => myContextRouter.Publish(nameof(ListenerSelected), (lbListeners, lbParameters, tbListener));
-            lbContexts.SelectedIndexChanged += (_, __) => myContextRouter.Publish(nameof(ShowActiveListeners), (otherContextRouter, lbActiveListeners, lbContexts.SelectedItem.ToString()));
         }
 
         protected ContextRouter InitializeMyContextRouter()
@@ -43,6 +40,19 @@ namespace Designer
                 .Register<ShowActiveListeners>();
 
             return cr;
+        }
+
+        protected void WireUpEvents(ContextRouter myContextRouter, ContextRouter otherContextRouter)
+        {
+            lbListeners.SelectedIndexChanged += (_, __) =>
+                myContextRouter.Publish(
+                    nameof(ListenerSelected), 
+                    (lbListeners, lbParameters, tbListener));
+
+            lbContexts.SelectedIndexChanged += (_, __) =>
+                myContextRouter.Publish(
+                    nameof(ShowActiveListeners), 
+                    (otherContextRouter, lbActiveListeners, lbContexts.SelectedItem.ToString()));
         }
 
         public static Assembly ReflectionOnlyAssemblyResolve(object sender, ResolveEventArgs args)
