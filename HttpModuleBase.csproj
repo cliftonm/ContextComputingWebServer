@@ -45,9 +45,7 @@
     <Content Include="Web.config" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Assert.cs" />
     <Compile Include="AsyncServer.cs" />
-    <Compile Include="ContextRouter.cs" />
     <Compile Include="Handler.cs" />
     <Compile Include="Module.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -63,6 +61,16 @@
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Web" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="ContextComputing\ContextComputing.csproj">
+      <Project>{3dd05e8a-59f1-416d-9adf-72904548ea5b}</Project>
+      <Name>ContextComputing</Name>
+    </ProjectReference>
+    <ProjectReference Include="Listeners\Listeners.csproj">
+      <Project>{7f90f7e8-cb06-41fd-b4af-f2ed52bd4a2a}</Project>
+      <Name>Listeners</Name>
+    </ProjectReference>
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>

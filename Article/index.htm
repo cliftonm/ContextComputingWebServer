@@ -637,21 +637,20 @@ There are no direct listeners for the contexts &quot;People&quot; and &quot;Pets
 <p>Earlier I said that there were no direct listeners to the &quot;People&quot; and &quot;Pets&quot; 
 contexts.&nbsp; Let's add listeners to these contexts that tells us how many 
 people and pets are in each respective table:</p>
-<pre>public class CountPeople : IContextComputingListener
+<pre>public class Count : IContextComputingListener
 {
   public void Execute(ContextRouter router, ContextItem item, People people, HttpContext httpContext)
   {
     httpContext.Response.Write(String.Format(&quot;&lt;p&gt;There are {0} people.&lt;/p&gt;&quot;, people.GetPeople().Count));
   }
-}
 
-public class CountPets : IContextComputingListener
-{
-  public void Execute(ContextRouter router, ContextItem item, Pets people, HttpContext httpContext)
+  public void Execute(ContextRouter router, ContextItem item, Pets pets, HttpContext httpContext)
   {
-    httpContext.Response.Write(String.Format(&quot;&lt;p&gt;There are {0} pet types.&lt;/p&gt;&quot;, people.GetPets().Count));
+    httpContext.Response.Write(String.Format(&quot;&lt;p&gt;There are {0} pet types.&lt;/p&gt;&quot;, pets.GetPets().Count));
   }
 }</pre>
+<p>Notice something here!&nbsp; Because the <code>Execute</code> methods take different 
+parameter types, we can implement them in a single <code>Count</code> class.</p>
 <p>Then, we add triggers to indicate that when [&quot;People&quot; and &quot;GetPage&quot;] and 
 [&quot;Pets&quot; and &quot;GetPage&quot;] are available, the associated listener it invoked, so now 
 the context router initialization has two additional <code>TriggerOn</code> calls:</p>
@@ -662,8 +661,10 @@ the context router initialization has two additional <code>TriggerOn</code> call
   .Register&lt;GetPets&gt;(&quot;GetPets&quot;)
   .TriggerOn&lt;Render&gt;(&quot;People&quot;, &quot;Pets&quot;, &quot;GetPage&quot; )
 
-  .TriggerOn&lt;CountPeople&gt;(&quot;People&quot;, &quot;GetPage&quot;)
-  .TriggerOn&lt;CountPets&gt;(&quot;Pets&quot;, &quot;GetPage&quot;);</pre>
+  .TriggerOn&lt;Count&gt;(&quot;People&quot;, &quot;GetPage&quot;)
+  .TriggerOn&lt;Count&gt;(&quot;Pets&quot;, &quot;GetPage&quot;);</pre>
+<p>Again, notice that we specify the same <code>Count</code> class to handle both triggers, 
+because the triggers take different parameter types.</p>
 <p>This renders as:</p>
 <p><img border="0" src="demo7.png" width="246" height="322"></p>
 <p>This should be fairly mind warping -- by adding a couple listener classes and 
@@ -681,6 +682,61 @@ it takes to create the HTML for the tables.&nbsp; If we delay the output of the
 brings up the all important point that if you're manipulating, particularly for 
 output, an object that is used by multiple listeners they need to be thread 
 safe.</p>
+<h3>Under the Hood</h3>
+<p>The salient method is the one that checks the triggers specific to an async 
+context to see if all the context-data items have been published.&nbsp; This is 
+a somewhat brute force approach at the moment:</p>
+<pre>private void CheckForTriggers(string context, object asyncContext)
+{
+  triggers.ForEach(kvp =&gt;
+  {
+    if (kvp.Value.AsyncPendingContexts.TryGetValue(asyncContext, out List&lt;PendingContext&gt; pendingContexts))
+    {
+      if (pendingContexts.All(pc =&gt; pc.Posted))
+      {
+        IContextComputingListener listener = (IContextComputingListener)Activator.CreateInstance(kvp.Key);
+        TriggerData data = kvp.Value.GetDataAndClear(asyncContext);
+        ContextItem contextItem = new ContextItem(null, data, asyncContext);
+        Enqueue(listener, contextItem, data);
+        semQueue.Release();
+      }
+    }
+  });
+}
+</pre>
+<p>Note that iterating a <code>ConcurrentDictionary</code> is thread safe and performing an 
+<code>All</code> on the <code>pendingContexts</code> is just a read operation, so it's also thread safe.</p>
+<p>Here we:</p>
+<ol>
+	<li>Get the pending data-contexts for the specific async context, </li>
+	<li>Check if all the pending data to trigger the listener as been posted, 
+	and if so...</li>
+	<li>Instantiate the listener (this only works with generic type <code>TriggerOn</code> 
+	right now)</li>
+	<li>Get the pending context-data and reset the pending buffers to &quot;not 
+	posted.&quot;</li>
+<li>Enqueue the work.</li>
+</ol>
+<p>In the <code>InvokeListener</code> call, we specifically check for the wrapped type 
+<code>TriggerData</code> and form the parameters in the same order as the context 
+dependencies were specified -- this could use refactoring to create the 
+parameters in the order of the listener <code>Execute</code> method.</p>
+<pre>if (data is TriggerData)
+{
+  // Put trigger data into param list in the order it's in the list.
+  List&lt;object&gt; parms = new List&lt;object&gt;() { this, contextItem };
+  parms.AddRange(((TriggerData)data).Data);
+  mi.Invoke(listener, parms.ToArray());
+}</pre>
+<p>So, given that the context to trigger the <code>Render</code> listener were specified in 
+this order:</p>
+<pre>.TriggerOn&lt;Render&gt;(&quot;People&quot;, &quot;Pets&quot;, &quot;GetPage&quot;)</pre>
+<p>the parameters are passed to the <code>Execute</code> method in the same order:</p>
+<pre>public void Execute(ContextRouter router, ContextItem item, People people, Pets pets, HttpContext httpContext)</pre>
+<h4>Caveats</h4>
+<p>If two threads post data to the same pending context, the last one that posts 
+its data to the pending context will be the data that is used when calling the 
+listener trigger.</p>
 <p>&nbsp;</p>
 <p>&nbsp;</p>
 <p>&nbsp;</p>
