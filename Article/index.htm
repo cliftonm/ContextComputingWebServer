@@ -698,11 +698,8 @@ a somewhat brute force approach at the moment:</p>
   });
 }
 </pre>
-<p>Note that iterating a <code>ConcurrentDictionary</code> is thread safe and performing an 
-<code>All</code> on the <code>pendingContexts</code> is just a read operation, so it's also thread safe.</p>
 <p>Here we:</p>
 <ol>
-	<li>Get the pending data-contexts for the specific async context, </li>
 	<li>Check if all the pending data to trigger the listener as been posted, 
 	and if so...</li>
 	<li>Instantiate the listener (this only works with generic type <code>TriggerOn</code> 
@@ -731,15 +728,17 @@ this order:</p>
 <p>If two threads post data to the same pending context, the last one that posts 
 its data to the pending context will be the data that is used when calling the 
 listener trigger.</p>
+<h2>Context Router Explorer</h2>
+<p><img border="0" src="demo9.png" width="788" height="681"></p>
 <p>&nbsp;</p>
+<h2>You Have Questions</h2>
+<h3>Why not a publisher/subscriber or messaging architecture?</h3>
+<p>These architectures expect all the data to be present when when the message 
+is published.&nbsp; One of the features of this context computing engine is that 
+listeners can be triggered once the required set of data is available.</p>
+<h3>Published Contexts in Attributes?</h3>
+<h3>What About the Context Name Being a String?</h3>
 <p>&nbsp;</p>
-<p>&nbsp;</p>
-<p>&nbsp;</p>
-<p>&nbsp;</p>
-<p>&nbsp;</p>
-<p>Context name in metadata</p>
-<h2>What About the Context Name Being a String?</h2>
-<p>Design Tool (UI)</p>
 <p>&nbsp;</p>
 <p>&nbsp;</p>
 <p>&nbsp;</p>

@@ -215,6 +215,22 @@ namespace ContextComputing
             contextListeners.Where(cl => cl.Key == context).ForEach(cl => ret.AddRange(cl.Value.Select(l => l.listener.GetType())));
             contextListenerTypes.Where(clt => clt.Key == context).ForEach(clt => ret.AddRange(clt.Value));
 
+            typeContexts.ForEach(kvp =>
+            {
+                if (kvp.Value.Contains(context))
+                {
+                    ret.Add(kvp.Key);
+                }
+            });
+
+            triggers.ForEach(t =>
+            {
+                if (t.Contexts.Contains(context))
+                {
+                    ret.Add(t.ListenerType);
+                }
+            });
+
             return ret.Distinct().ToList();
         }
 
