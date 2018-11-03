@@ -38,6 +38,7 @@ namespace Listeners
 
     public class HelloWorld : IContextComputingListener
     {
+        [Publishes("Wait1, GetPeople, GetPets")]
         public void Execute(ContextRouter router, ContextItem item, HttpContext httpContext)
         {
             httpContext.Response.Write(String.Format("<p>{0} Hello World!</p>", DateTime.Now.ToString("ss.fff")));
@@ -49,6 +50,7 @@ namespace Listeners
 
     public class Wait1 : IContextComputingListener
     {
+        [Publishes("Wait2")]
         public void Execute(ContextRouter router, ContextItem item, HttpContext httpContext)
         {
             Thread.Sleep(500);
@@ -102,6 +104,7 @@ namespace Listeners
 
     public class GetPeople : IContextComputingListener
     {
+        [Publishes("People")]
         public void Execute(ContextRouter router, ContextItem item)
         {
             // Simulate having queried people:
@@ -114,6 +117,7 @@ namespace Listeners
 
     public class GetPets : IContextComputingListener
     {
+        [Publishes("Pets")]
         public void Execute(ContextRouter router, ContextItem item)
         {
             // Simulate having queried people:

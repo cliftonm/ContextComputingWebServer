@@ -688,19 +688,13 @@ context to see if all the context-data items have been published.&nbsp; This is
 a somewhat brute force approach at the moment:</p>
 <pre>private void CheckForTriggers(string context, object asyncContext)
 {
-  triggers.ForEach(kvp =&gt;
+  triggers.Where(t =&gt; t.AllPosted(asyncContext)).ForEach(t =&gt;
   {
-    if (kvp.Value.AsyncPendingContexts.TryGetValue(asyncContext, out List&lt;PendingContext&gt; pendingContexts))
-    {
-      if (pendingContexts.All(pc =&gt; pc.Posted))
-      {
-        IContextComputingListener listener = (IContextComputingListener)Activator.CreateInstance(kvp.Key);
-        TriggerData data = kvp.Value.GetDataAndClear(asyncContext);
-        ContextItem contextItem = new ContextItem(null, data, asyncContext);
-        Enqueue(listener, contextItem, data);
-        semQueue.Release();
-      }
-    }
+    IContextComputingListener listener = (IContextComputingListener)Activator.CreateInstance(t.ListenerType);
+    TriggerData data = t.GetDataAndClear(asyncContext);
+    ContextItem contextItem = new ContextItem(null, data, asyncContext);
+    Enqueue(listener, contextItem, data);
+    semQueue.Release();
   });
 }
 </pre>

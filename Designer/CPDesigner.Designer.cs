@@ -40,6 +40,9 @@
             this.lbActiveListeners = new System.Windows.Forms.ListBox();
             this.label6 = new System.Windows.Forms.Label();
             this.lbContextTypeMaps = new System.Windows.Forms.ListBox();
+            this.pnlDiagram = new System.Windows.Forms.Panel();
+            this.label7 = new System.Windows.Forms.Label();
+            this.lbPublishes = new System.Windows.Forms.ListBox();
             this.SuspendLayout();
             // 
             // lbListeners
@@ -89,8 +92,6 @@
             // 
             // lbParameters
             // 
-            this.lbParameters.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left)));
             this.lbParameters.FormattingEnabled = true;
             this.lbParameters.Location = new System.Drawing.Point(286, 51);
             this.lbParameters.Name = "lbParameters";
@@ -108,8 +109,6 @@
             // 
             // lbContexts
             // 
-            this.lbContexts.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left)));
             this.lbContexts.FormattingEnabled = true;
             this.lbContexts.Location = new System.Drawing.Point(220, 163);
             this.lbContexts.Name = "lbContexts";
@@ -144,19 +143,47 @@
             // 
             // lbContextTypeMaps
             // 
-            this.lbContextTypeMaps.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left)));
             this.lbContextTypeMaps.FormattingEnabled = true;
             this.lbContextTypeMaps.Location = new System.Drawing.Point(220, 424);
             this.lbContextTypeMaps.Name = "lbContextTypeMaps";
             this.lbContextTypeMaps.Size = new System.Drawing.Size(165, 212);
             this.lbContextTypeMaps.TabIndex = 12;
             // 
+            // pnlDiagram
+            // 
+            this.pnlDiagram.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.pnlDiagram.Location = new System.Drawing.Point(392, 278);
+            this.pnlDiagram.Name = "pnlDiagram";
+            this.pnlDiagram.Size = new System.Drawing.Size(627, 358);
+            this.pnlDiagram.TabIndex = 13;
+            // 
+            // label7
+            // 
+            this.label7.AutoSize = true;
+            this.label7.Location = new System.Drawing.Point(577, 50);
+            this.label7.Name = "label7";
+            this.label7.Size = new System.Drawing.Size(55, 13);
+            this.label7.TabIndex = 14;
+            this.label7.Text = "Publishes:";
+            // 
+            // lbPublishes
+            // 
+            this.lbPublishes.FormattingEnabled = true;
+            this.lbPublishes.Location = new System.Drawing.Point(638, 51);
+            this.lbPublishes.Name = "lbPublishes";
+            this.lbPublishes.Size = new System.Drawing.Size(130, 82);
+            this.lbPublishes.TabIndex = 15;
+            // 
             // CPDesigner
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1031, 647);
+            this.Controls.Add(this.lbPublishes);
+            this.Controls.Add(this.label7);
+            this.Controls.Add(this.pnlDiagram);
             this.Controls.Add(this.lbContextTypeMaps);
             this.Controls.Add(this.label6);
             this.Controls.Add(this.lbActiveListeners);
@@ -190,6 +217,9 @@
         private System.Windows.Forms.ListBox lbActiveListeners;
         private System.Windows.Forms.Label label6;
         private System.Windows.Forms.ListBox lbContextTypeMaps;
+        private System.Windows.Forms.Panel pnlDiagram;
+        private System.Windows.Forms.Label label7;
+        private System.Windows.Forms.ListBox lbPublishes;
     }
 }
 

@@ -21,6 +21,20 @@ namespace ContextComputing
         }
     }
 
+    [AttributeUsage(AttributeTargets.Method)]
+    public class PublishesAttribute : Attribute
+    {
+        public List<string> Contexts { get; protected set; }
+
+        /// <summary>
+        /// Comma-delimited contexts.
+        /// </summary>
+        public PublishesAttribute(string contexts)
+        {
+            Contexts = new List<string>(contexts.Split(',').Select(c => c.Trim()));
+        }
+    }
+
     public class ContextItem
     {
         public string Context { get; protected set; }

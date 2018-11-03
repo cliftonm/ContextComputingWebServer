@@ -59,5 +59,26 @@ namespace Designer
 
             return items;
         }
+
+        public static List<string> GetContextsPublished(Type t)
+        {
+            List<string> ret = new List<string>();
+
+            var methods = t.GetMethods().Where(m => m.Name == "Execute");
+
+            methods.ForEach(m =>
+            {
+                // Because the assemblies are loaded for reflection only, we have to use CustomAttributesData.
+                var cad = m.GetCustomAttributesData();
+                var attr = cad.SingleOrDefault(c => c.AttributeType.Name == typeof(PublishesAttribute).Name);
+
+                if (attr != null)
+                {
+                    ret.AddRange(attr.ConstructorArguments[0].Value.ToString().Split(',').Select(c=>c.Trim()));
+                }
+            });
+
+            return ret;
+        }
     }
 }
