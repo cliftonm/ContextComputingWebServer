@@ -4,6 +4,9 @@ using System.Threading.Tasks;
 
 using ContextComputing;
 
+// iisexpress /path:c:\projects\ContextComputingWebServer /port:9090
+// Then browse to: http://localhost:9090/
+
 /*
     Call sequence:
 

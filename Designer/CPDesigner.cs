@@ -62,7 +62,7 @@ namespace Designer
             myContextRouter.Publish(nameof(ShowListeners), lbListeners);
             myContextRouter.Publish(nameof(ShowContexts), (otherContextRouter, lbContexts));
             myContextRouter.Publish(nameof(ShowTypeMaps), (otherContextRouter, lbContextTypeMaps));
-            myContextRouter.Publish(nameof(DrawContext), (otherContextRouter, canvasController));
+            myContextRouter.Publish(nameof(DrawContext), (otherContextRouter, canvasController, "HelloWorld"));
         }
 
         protected ContextRouter InitializeMyContextRouter()

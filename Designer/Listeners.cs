@@ -107,18 +107,203 @@ namespace Designer
 
     public class DrawContext : IContextComputingListener
     {
-        public void Execute(ContextRouter router, ContextItem item, (ContextRouter router, BaseController canvasController) data)
+        enum Direction
         {
-            var listeners = Model.GetListeners();
-            int x = 10;
-            int y = 10;
+            None,
+            Center,
+            Up,
+            Down,
+            Left,
+            Right,
+        }
 
+        // Directions to try depending on the number of target listeners.
+
+        public void Execute(ContextRouter router, ContextItem item, (ContextRouter router, BaseController canvasController, string startingListenerName) data)
+        {
+            Box box;
+            List<((int x, int y) p, Type type, Direction dir)> placedListeners = new List<((int, int), Type, Direction)>();
+            List<((int x, int y) p, GraphicElement el)> occupiedCells = new List<((int x, int y), GraphicElement)>();
             // listeners are of type "ReflectOnlyType" so we use name so we can compare System.RuntimeType with ReflectionOnlyType.
             Dictionary<string, GraphicElement> listenerShapes = new Dictionary<string, GraphicElement>();
 
+            // https://stackoverflow.com/questions/398299/looping-in-a-spiral
+            List<(int, int)> Spiral(int X, int Y)
+            {
+                List<(int, int)> cells = new List<(int, int)>();
+                int x, y, dx, dy;
+                x = y = dx = 0;
+                dy = -1;
+                int tm = Math.Max(X, Y);
+                int maxI = tm * tm;
+
+                for (int i = 0; i < maxI; i++)
+                {
+                    if ((-X / 2 <= x) && (x <= X / 2) && (-Y / 2 <= y) && (y <= Y / 2))
+                    {
+                        cells.Add((x, y));
+                    }
+
+                    if ((x == y) || ((x < 0) && (x == -y)) || ((x > 0) && (x == 1 - y)))
+                    {
+                        tm = dx;
+                        dx = -dy;
+                        dy = tm;
+                    }
+
+                    x += dx;
+                    y += dy;
+                }
+
+                return cells;
+            }
+
+            (int, int, Direction) GetFreeCell(Type forType, (int x, int y) srcCell, (int x, int y, Direction dir)[] tryPoints, IEnumerable<(int x, int y)> occupiedPoints)
+            {
+                (int, int, Direction) p = (0, 0, Direction.None);
+                bool found = false;
+
+                foreach (var pointToTry in tryPoints)
+                {
+                    int x = pointToTry.x + srcCell.x;
+                    int y = pointToTry.y + srcCell.y;
+
+                    if (!occupiedPoints.Any(oc => oc.x == x && oc.y == y))
+                    {
+                        p = (x, y, pointToTry.dir);
+                        found = true;
+                        break;
+                    }
+                }
+
+                if (!found)
+                {
+                    // Spiral out from the current location in a 10x10 grid to find a free cell.
+                    List<(int x, int y)> spiral = Spiral(10, 10);
+
+                    foreach (var pointToTry in spiral)
+                    {
+                        int x = pointToTry.x + srcCell.x;
+                        int y = pointToTry.y + srcCell.y;
+
+                        if (!occupiedPoints.Any(oc => oc.x == x && oc.y == y))
+                        {
+                            p = (x, y, Direction.Center);
+                            found = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (!found)
+                {
+                    throw new Exception("Unable to find a free cell for type " + forType.Name);
+                }
+
+                return p;
+            }
+
+            void PlaceTargetListeners((int x, int y) sourceCell, Type sourceListener, Direction sourceListenerDir)
+            {
+                var publishes = Model.GetContextsPublished(sourceListener);
+
+                publishes.ForEach(context =>
+                {
+                    var targetListeners = data.router.GetListeners(context);
+                    
+                    // ToList because we're adding to placedListeners as we iterate targetListeners, so we need to capture
+                    // this way the list looks now.
+                    var notPlacedListeners = targetListeners.Where(tl => !placedListeners.Any(pl => pl.type == tl)).ToList();
+
+                    notPlacedListeners.ForEach(tl =>
+                    {
+                        (int x, int y, Direction dir) p = (0, 0, Direction.None);
+
+                        switch (sourceListenerDir)
+                        {
+                            case Direction.Center:
+                                {
+                                    (int, int, Direction)[] tryPoints = new(int, int, Direction)[] { (0, -1, Direction.Up), (-1, 1, Direction.Down), (1, 1, Direction.Down), (-1, -1, Direction.Left), (1, -1, Direction.Right), (-1, 0, Direction.Left), (0, 1, Direction.Right) };
+                                    p = GetFreeCell(tl, sourceCell, tryPoints, occupiedCells.Select(oc => oc.p));
+                                    break;
+                                }
+
+                            case Direction.Up:
+                                {
+                                    (int, int, Direction)[] tryPoints = new(int, int, Direction)[] { (0, -1, Direction.Up), (-1, -1, Direction.Left), (1, -1, Direction.Right), (-1, 0, Direction.Left), (1, 0, Direction.Right), (-1, 1, Direction.Left), (1, 1, Direction.Right) };
+                                    p = GetFreeCell(tl, sourceCell, tryPoints, occupiedCells.Select(oc => oc.p));
+                                    break;
+                                }
+
+                            case Direction.Down:
+                                {
+                                    (int, int, Direction)[] tryPoints = new(int, int, Direction)[] { (0, 1, Direction.Down), (-1, 1, Direction.Down), (1, 1, Direction.Down), (-1, -1, Direction.Left), (1, -1, Direction.Right), (-1, 0, Direction.Left), (0, 1, Direction.Right) };
+                                    p = GetFreeCell(tl, sourceCell, tryPoints, occupiedCells.Select(oc => oc.p));
+                                    break;
+                                }
+
+                            case Direction.Left:
+                                {
+                                    (int, int, Direction)[] tryPoints = new(int, int, Direction)[] { (-1, 0, Direction.Left), (-1, 1, Direction.Down), (1, 1, Direction.Down), (-1, -1, Direction.Up), (1, -1, Direction.Up), (0, -1, Direction.Up), (0, 1, Direction.Down) };
+                                    p = GetFreeCell(tl, sourceCell, tryPoints, occupiedCells.Select(oc => oc.p));
+                                    break;
+                                }
+
+                            case Direction.Right:
+                                {
+                                    (int, int, Direction)[] tryPoints = new(int, int, Direction)[] { (1, 0, Direction.Right), (-1, 1, Direction.Down), (1, 1, Direction.Down), (-1, -1, Direction.Up), (1, -1, Direction.Up), (0, -1, Direction.Up), (0, 1, Direction.Down) };
+                                    p = GetFreeCell(tl, sourceCell, tryPoints, occupiedCells.Select(oc => oc.p));
+                                    break;
+                                }
+                        }
+
+                        placedListeners.Add(((p.x, p.y), tl, p.dir));
+                        box = new Box(data.canvasController.Canvas);
+                        box.Text = tl.Name;
+                        listenerShapes[tl.Name] = box;
+                        occupiedCells.Add(((p.x, p.y), box));
+                        // PlaceTargetListeners((p.x, p.y), tl, p.dir);
+                    });
+
+                    notPlacedListeners.ForEach(tl =>
+                    {
+                        var placed = placedListeners.Single(pl => pl.type.Name == tl.Name);
+                        PlaceTargetListeners(placed.p, tl, placed.dir);
+                    });
+                });
+            }
+
+            void PlaceShapes()
+            {
+                int cx = data.canvasController.Canvas.Width / 2;
+                int cy = data.canvasController.Canvas.Height / 2;
+
+                occupiedCells.ForEach(oc =>
+                {
+                    int x = oc.p.x * 150 + cx;
+                    int y = oc.p.y * 75 + cy;
+                    oc.el.DisplayRectangle = new Rectangle(x, y, 100, 30);
+                });
+            }
+
+            var listeners = Model.GetListeners();
+
+            // Start with entry point type.
+            Type t = listeners.Single(l => l.Name == data.startingListenerName);
+            Direction dir = Direction.Center;
+            placedListeners.Add(((0, 0), t, Direction.Center));
+            box = new Box(data.canvasController.Canvas);
+            box.Text = t.Name;
+            listenerShapes[t.Name] = box;
+            occupiedCells.Add(((0, 0), box));
+            PlaceTargetListeners((0, 0), t, dir);
+            PlaceShapes();
+            occupiedCells.ForEach(oc => data.canvasController.AddElement(oc.el));
+
+            /*
             listeners.OrderBy(l => l.Name).ForEach(l =>
             {
-                Box box = new Box(data.canvasController.Canvas);
+                box = new Box(data.canvasController.Canvas);
                 box.DisplayRectangle = new Rectangle(x, y, 100, 30);
                 box.Text = l.Name;
                 listenerShapes[l.Name] = box;
@@ -131,6 +316,7 @@ namespace Designer
                     y += 50;
                 }
             });
+            */
 
             var connectors = new List<GraphicElement>();
 
