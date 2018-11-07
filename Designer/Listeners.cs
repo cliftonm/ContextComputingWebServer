@@ -128,7 +128,7 @@ namespace Designer
             Dictionary<string, GraphicElement> listenerShapes = new Dictionary<string, GraphicElement>();
 
             // https://stackoverflow.com/questions/398299/looping-in-a-spiral
-            List<(int, int)> Spiral(int X, int Y)
+            IEnumerable<(int x, int y)> Spiral(int X, int Y)
             {
                 List<(int, int)> cells = new List<(int, int)>();
                 int x, y, dx, dy;
@@ -141,7 +141,7 @@ namespace Designer
                 {
                     if ((-X / 2 <= x) && (x <= X / 2) && (-Y / 2 <= y) && (y <= Y / 2))
                     {
-                        cells.Add((x, y));
+                        yield return (x, y);
                     }
 
                     if ((x == y) || ((x < 0) && (x == -y)) || ((x > 0) && (x == 1 - y)))
@@ -154,8 +154,6 @@ namespace Designer
                     x += dx;
                     y += dy;
                 }
-
-                return cells;
             }
 
             (int, int, Direction) GetFreeCell(Type forType, (int x, int y) srcCell, (int x, int y, Direction dir)[] tryPoints, IEnumerable<(int x, int y)> occupiedPoints)
@@ -178,10 +176,8 @@ namespace Designer
 
                 if (!found)
                 {
-                    // Spiral out from the current location in a 10x10 grid to find a free cell.
-                    List<(int x, int y)> spiral = Spiral(10, 10);
-
-                    foreach (var pointToTry in spiral)
+                    // Spiral out in a 10x10 grid centeered around the current location to find a free cell.
+                    foreach (var pointToTry in Spiral(10, 10))
                     {
                         int x = pointToTry.x + srcCell.x;
                         int y = pointToTry.y + srcCell.y;
@@ -298,25 +294,8 @@ namespace Designer
             occupiedCells.Add(((0, 0), box));
             PlaceTargetListeners((0, 0), t, dir);
             PlaceShapes();
+
             occupiedCells.ForEach(oc => data.canvasController.AddElement(oc.el));
-
-            /*
-            listeners.OrderBy(l => l.Name).ForEach(l =>
-            {
-                box = new Box(data.canvasController.Canvas);
-                box.DisplayRectangle = new Rectangle(x, y, 100, 30);
-                box.Text = l.Name;
-                listenerShapes[l.Name] = box;
-                data.canvasController.AddElement(box);
-                x += 130;
-
-                if (x + 100 > data.canvasController.Canvas.Width)
-                {
-                    x = 10;
-                    y += 50;
-                }
-            });
-            */
 
             var connectors = new List<GraphicElement>();
 
