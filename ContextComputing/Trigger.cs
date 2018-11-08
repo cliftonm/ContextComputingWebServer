@@ -11,6 +11,13 @@ namespace ContextComputing
     {
         public List<string> Contexts { get { return masterPendingContexts.Select(mpc => mpc.ContextName).ToList(); } }
 
+        /// <summary>
+        /// Triggers that receive just static data are effectively one-time triggers.  Once all the static data has
+        /// been posted, the trigger is never fired again -- updating a static context value throws an exception.
+        /// So we set this flag to indicate that the trigger has been fired and we don't want to fire this trigger ever again.
+        /// </summary>
+        private bool neverPostAgain;
+
         // Master list.
         private List<PendingContext> masterPendingContexts = new List<PendingContext>();
 
@@ -29,9 +36,12 @@ namespace ContextComputing
         {
             bool ret = false;
 
-            if (asyncPendingContexts.TryGetValue(asyncContext, out List<PendingContext> pendingContexts))
+            if (!neverPostAgain)
             {
-                ret = pendingContexts.All(pc => pc.Posted);
+                if (asyncPendingContexts.TryGetValue(asyncContext, out List<PendingContext> pendingContexts))
+                {
+                    ret = pendingContexts.All(pc => pc.Posted);
+                }
             }
 
             return ret;
@@ -73,7 +83,8 @@ namespace ContextComputing
             lock (pendingContexts)
             {
                 data = new TriggerData(pendingContexts.Select(c => c.Data).ToList());
-                pendingContexts.Where(c => !c.IsStatic).ForEach(c => c.Clear());
+                pendingContexts.ForEach(c => c.Clear());
+                neverPostAgain = pendingContexts.All(pc => pc.IsStatic);
             }
 
             return data;

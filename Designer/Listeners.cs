@@ -13,6 +13,17 @@ namespace Designer
 {
     // Type holder.
     public class ShowListenerInfo { }
+    public class ListenerListBox { }
+    public class ListenerTextBox { }
+    public class ContextListBox { }
+    public class ParametersListBox { }
+    public class PublishesListBox { }
+    public class OtherContextRouter { }
+    public class ContextTypeMapsListBox { }
+    public class StartingListener { }
+    public class SelectedListener { }
+    public class SelectedContext { }
+    public class ActiveListenersListBox { }
 
     public class ShowListeners : IContextComputingListener
     {
@@ -29,79 +40,80 @@ namespace Designer
 
     public class ShowContexts : IContextComputingListener
     {
-        public  void Execute(ContextRouter router, ContextItem item, (ContextRouter router, ListBox listBox) data)
+        public  void Execute(ContextRouter router, ContextItem item, ContextRouter otherRouter, ListBox listBox)
         {
-            data.listBox.BeginInvoke(() => data.listBox.Items.AddRange(data.router.GetAllContexts().OrderBy(c => c).ToArray()));
+            listBox.BeginInvoke(() => listBox.Items.AddRange(otherRouter.GetAllContexts().OrderBy(c => c).ToArray()));
         }
     }
 
     public class ShowTypeMaps : IContextComputingListener
     {
-        public void Execute(ContextRouter router, ContextItem item, (ContextRouter router, ListBox listBox) data)
+        public void Execute(ContextRouter router, ContextItem item, ContextRouter otherRouter, ListBox listBox)
         {
-            data.listBox.BeginInvoke(() => data.listBox.Items.AddRange(data.router.GetTypeContexts().Select(tc => tc.type.Name + " => " + tc.context).ToArray()));
+            listBox.BeginInvoke(() => listBox.Items.AddRange(otherRouter.GetTypeContexts().Select(tc => tc.type.Name + " => " + tc.context).ToArray()));
         }
     }
 
+    /*
     public class ListenerSelected : IContextComputingListener
     {
-        public void Execute(ContextRouter router, ContextItem item, (ListBox listBoxListeners, ListBox listBoxParameters, ListBox listBoxPublishes, TextBox textBox) data)
+        public void Execute(ContextRouter router, ContextItem item, ListBox listBoxListeners, ListBox listBoxParameters, ListBox listBoxPublishes, TextBox textBox, string name)
         {
-            data.listBoxListeners.BeginInvoke(() =>
+            listBoxListeners.BeginInvoke(() =>
             {
-                string name = data.listBoxListeners.SelectedItem.ToString();
-                router.Publish(nameof(ShowListenerInfo), (data.textBox, data.listBoxParameters, data.listBoxPublishes, name));
+                router.Publish(nameof(ShowListenerInfo), (textBox, listBoxParameters, listBoxPublishes, name));
             });
         }
     }
+    */
 
     public class ShowListenerSelection : IContextComputingListener
     {
-        public void Execute(ContextRouter router, ContextItem item, (TextBox textBox, ListBox, ListBox, string name) data)
+        public void Execute(ContextRouter router, ContextItem item, TextBox textBox, string name)
         {
-            data.textBox.BeginInvoke(() => data.textBox.Text = data.name);
+            textBox.BeginInvoke(() => textBox.Text = name);
         }
     }
 
     public class ShowListenerParameters : IContextComputingListener
     {
-        public void Execute(ContextRouter router, ContextItem item, (TextBox, ListBox listBox, ListBox, string name) data)
+        public void Execute(ContextRouter router, ContextItem item, ListBox listBox, string name)
         {
             var listeners = Model.GetListeners();
-            var executors = Model.GetParameters(listeners, data.name);
+            var executors = Model.GetParameters(listeners, name);
 
-            data.listBox.BeginInvoke(() =>
+            listBox.BeginInvoke(() =>
             {
-                data.listBox.Items.Clear();
-                data.listBox.Items.AddRange(executors.ToArray());
+                listBox.Items.Clear();
+                listBox.Items.AddRange(executors.ToArray());
             });
         }
     }
 
     public class ShowPublishedContext : IContextComputingListener
     {
-        public void Execute(ContextRouter router, ContextItem item, (TextBox, ListBox, ListBox listBox, string name) data)
+        public void Execute(ContextRouter router, ContextItem item, ListBox listBox, string name)
         {
-            var listener = Model.GetListeners().Single(l => l.Name == data.name);
+            var listener = Model.GetListeners().Single(l => l.Name == name);
 
-            data.listBox.BeginInvoke(() =>
+            listBox.BeginInvoke(() =>
             {
-                data.listBox.Items.Clear();
-                data.listBox.Items.AddRange(Model.GetContextsPublished(listener).ToArray());
+                listBox.Items.Clear();
+                listBox.Items.AddRange(Model.GetContextsPublished(listener).ToArray());
             });
         }
     }
 
     public class ShowActiveListeners : IContextComputingListener
     {
-        public void Execute(ContextRouter router, ContextItem item, (ContextRouter router, ListBox listBox, string contextName) data)
+        public void Execute(ContextRouter router, ContextItem item, ContextRouter otherRouter, ListBox listBox, string contextName)
         {
-            var listenerTypes = data.router.GetListeners(data.contextName);
+            var listenerTypes = otherRouter.GetListeners(contextName);
 
-            data.listBox.BeginInvoke(() =>
+            listBox.BeginInvoke(() =>
             {
-                data.listBox.Items.Clear();
-                data.listBox.Items.AddRange(listenerTypes.Select(lt => lt.Name).ToArray());
+                listBox.Items.Clear();
+                listBox.Items.AddRange(listenerTypes.Select(lt => lt.Name).ToArray());
             });
         }
     }
@@ -120,7 +132,7 @@ namespace Designer
 
         // Directions to try depending on the number of target listeners.
 
-        public void Execute(ContextRouter router, ContextItem item, (ContextRouter router, BaseController canvasController, string startingListenerName) data)
+        public void Execute(ContextRouter router, ContextItem item, ContextRouter otherRouter, CanvasController canvasController, string startingListenerName)
         {
             Box box;
             List<((int x, int y) p, Type type, Direction dir)> placedListeners = new List<((int, int), Type, Direction)>();
@@ -206,7 +218,7 @@ namespace Designer
 
                 publishes.ForEach(context =>
                 {
-                    var targetListeners = data.router.GetListeners(context);
+                    var targetListeners = otherRouter.GetListeners(context);
                     
                     // ToList because we're adding to placedListeners as we iterate targetListeners, so we need to capture
                     // this way the list looks now.
@@ -255,7 +267,7 @@ namespace Designer
                         }
 
                         placedListeners.Add(((p.x, p.y), tl, p.dir));
-                        box = new Box(data.canvasController.Canvas);
+                        box = new Box(canvasController.Canvas);
                         box.Text = tl.Name;
                         listenerShapes[tl.Name] = box;
                         occupiedCells.Add(((p.x, p.y), box));
@@ -272,8 +284,8 @@ namespace Designer
 
             void PlaceShapes()
             {
-                int cx = data.canvasController.Canvas.Width / 2;
-                int cy = data.canvasController.Canvas.Height / 2;
+                int cx = canvasController.Canvas.Width / 2;
+                int cy = canvasController.Canvas.Height / 2;
 
                 occupiedCells.ForEach(oc =>
                 {
@@ -286,17 +298,17 @@ namespace Designer
             var listeners = Model.GetListeners();
 
             // Start with entry point type.
-            Type t = listeners.Single(l => l.Name == data.startingListenerName);
+            Type t = listeners.Single(l => l.Name == startingListenerName);
             Direction dir = Direction.Center;
             placedListeners.Add(((0, 0), t, Direction.Center));
-            box = new Box(data.canvasController.Canvas);
+            box = new Box(canvasController.Canvas);
             box.Text = t.Name;
             listenerShapes[t.Name] = box;
             occupiedCells.Add(((0, 0), box));
             PlaceTargetListeners((0, 0), t, dir);
             PlaceShapes();
 
-            occupiedCells.ForEach(oc => data.canvasController.AddElement(oc.el));
+            occupiedCells.ForEach(oc => canvasController.AddElement(oc.el));
 
             var connectors = new List<GraphicElement>();
 
@@ -307,7 +319,7 @@ namespace Designer
 
                 publishes.ForEach(context =>
                 {
-                    var listenerTypes = data.router.GetListeners(context);
+                    var listenerTypes = otherRouter.GetListeners(context);
 
                     listenerTypes.ForEach(lt =>
                     {
@@ -315,11 +327,11 @@ namespace Designer
                         {
                             Point p1 = sourceElement.DisplayRectangle.Center();
                             Point p2 = targetElement.DisplayRectangle.Center();
-                            var connector = new DiagonalConnector(data.canvasController.Canvas, p1, p2);
+                            var connector = new DiagonalConnector(canvasController.Canvas, p1, p2);
                             connector.EndCap = AvailableLineCap.Arrow;
                             connector.BorderPen = new Pen(Color.Green);
                             connector.UpdateProperties();
-                            data.canvasController.AddElement(connector);
+                            canvasController.AddElement(connector);
                             connectors.Add(connector);
 
                             ConnectionPoint cp1 = new ConnectionPoint(GripType.Start, p1);
@@ -338,11 +350,11 @@ namespace Designer
                 });
             });
 
-            data.canvasController.SelectElements(connectors);
-            data.canvasController.Topmost();
-            connectors.ForEach(c => data.canvasController.DeselectElement(c));
+            canvasController.SelectElements(connectors);
+            canvasController.Topmost();
+            connectors.ForEach(c => canvasController.DeselectElement(c));
 
-            data.canvasController.Canvas.Invalidate();
+            canvasController.Canvas.Invalidate();
         }
     }
 }

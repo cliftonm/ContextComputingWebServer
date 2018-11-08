@@ -21,8 +21,11 @@
 
         public void Clear()
         {
-            Data = null;
-            Posted = false;
+            if (!IsStatic)
+            {
+                Data = null;
+                Posted = false;
+            }
         }
     }
 }

@@ -218,6 +218,43 @@ namespace ContextComputing
             return this;
         }
 
+        public ContextRouter TriggerOn<T, P1>()
+        {
+            TriggerOn(new string[] { typeof(P1).Name }, typeof(T));
+
+            return this;
+        }
+
+        public ContextRouter TriggerOn<T, P1, P2>()
+        {
+            TriggerOn(new string[] { typeof(P1).Name, typeof(P2).Name }, typeof(T));
+
+            return this;
+        }
+
+        public ContextRouter TriggerOn<T, P1, P2, P3>()
+        {
+            TriggerOn(new string[] { typeof(P1).Name, typeof(P2).Name, typeof(P3).Name }, typeof(T));
+
+            return this;
+        }
+
+        public ContextRouter TriggerOn<T, P1, P2, P3, P4>()
+        {
+            TriggerOn(new string[] { typeof(P1).Name, typeof(P2).Name, typeof(P3).Name, typeof(P4).Name }, typeof(T));
+
+            return this;
+        }
+
+        public ContextRouter TriggerOn<T, P1, P2, P3, P4, P5>()
+        {
+            TriggerOn(new string[] { typeof(P1).Name, typeof(P2).Name, typeof(P3).Name, typeof(P4).Name, typeof(P5).Name }, typeof(T));
+
+            return this;
+        }
+        
+        // TODO: P6 through P10 ?
+
         public ContextRouter Unregister(string context, Guid id)
         {
             List<(IContextComputingListener action, Guid id)> listeners;
@@ -276,8 +313,9 @@ namespace ContextComputing
             CheckForTriggers(context, asyncContext);
         }
 
-        public void Publish(string context, object data, bool isStatic, object asyncContext = null)
+        public void Publish<Context>(object data, object asyncContext = null, bool isStatic = false)
         {
+            string context = typeof(Context).Name;
             asyncContext = asyncContext ?? nullContext;
             PublishDataToInstances(context, data, asyncContext);
             PublishDataToOnDemandListeners(context, data, asyncContext);
@@ -426,7 +464,7 @@ namespace ContextComputing
                         return equal;
                     });
 
-                   Assert.That(mi != null, "No suitable method in " + listener.GetType().Name + " found for parameters " + String.Join(", ", parms.Select(p => p.GetType().Name)));
+                   Assert.That(mi != null, "No suitable method in " + listener.GetType().Name + " found for parameters:\r\n " + String.Join("\r\n", parms.Select(p => p.GetType().Name)));
                    mi.Invoke(listener, parms.ToArray());
                 }
                 else
