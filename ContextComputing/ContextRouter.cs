@@ -6,175 +6,10 @@ using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
+using Clifton.Core.ExtensionMethods;
+
 namespace ContextComputing
 {
-    public interface IContextComputingListener { }
-
-    public static class ExtensionMethods
-    {
-        public static void ForEach<T>(this IEnumerable<T> items, Action<T> action)
-        {
-            foreach (T item in items)
-            {
-                action(item);
-            }
-        }
-    }
-
-    [AttributeUsage(AttributeTargets.Method)]
-    public class PublishesAttribute : Attribute
-    {
-        public List<string> Contexts { get; protected set; }
-
-        /// <summary>
-        /// Comma-delimited contexts.
-        /// </summary>
-        public PublishesAttribute(string contexts)
-        {
-            Contexts = new List<string>(contexts.Split(',').Select(c => c.Trim()));
-        }
-    }
-
-    public class ContextItem
-    {
-        public string Context { get; protected set; }
-        public object Data { get; protected set; }
-        public object AsyncContext { get; protected set; }
-
-        public ContextItem(string context, object data, object asyncContext)
-        {
-            Context = context;
-            Data = data;
-            AsyncContext = asyncContext;
-        }
-    }
-
-    public class ContextExceptionInfo
-    {
-        public Exception Exception { get; protected set; }
-        public object Data { get; protected set; }
-        public object AsyncContext { get; protected set; }
-
-        public ContextExceptionInfo(Exception ex, object data, object asyncContext)
-        {
-            Exception = ex;
-            Data = data;
-            AsyncContext = asyncContext;
-        }
-    }
-
-    public class PendingContext
-    {
-        public string ContextName { get; protected set; }
-        public object Data { get; protected set; }
-        public bool Posted { get; protected set; }
-
-        public PendingContext(string contextName)
-        {
-            ContextName = contextName;
-        }
-
-        public void Post(object data)
-        {
-            Data = data;
-            Posted = true;
-        }
-
-        public void Clear()
-        {
-            Data = null;
-            Posted = false;
-        }
-    }
-
-    public class Trigger
-    {
-        public List<string> Contexts { get { return masterPendingContexts.Select(mpc => mpc.ContextName).ToList(); } }
-
-        // Master list.
-        private List<PendingContext> masterPendingContexts = new List<PendingContext>();
-
-        // List of contexts with pending data to eventually trigger a listener.
-        private ConcurrentDictionary<object, List<PendingContext>> asyncPendingContexts = new ConcurrentDictionary<object, List<PendingContext>>();
-
-        public Type ListenerType { get; protected set; }
-
-        public Trigger(string[] contexts, Type listenerType)
-        {
-            ListenerType = listenerType;
-            contexts.ForEach(c => masterPendingContexts.Add(new PendingContext(c)));
-        }
-
-        public bool AllPosted(object asyncContext)
-        {
-            bool ret = false;
-
-            if (asyncPendingContexts.TryGetValue(asyncContext, out List<PendingContext> pendingContexts))
-            {
-                ret = pendingContexts.All(pc => pc.Posted);
-            }
-
-            return ret;
-        }
-
-        public void Post(string context, object data, object asyncContext)
-        {
-            List<PendingContext> pendingContexts;
-
-            if (masterPendingContexts.Any(mpc => mpc.ContextName == context))
-            {
-                lock (asyncPendingContexts)
-                {
-                    if (!asyncPendingContexts.TryGetValue(asyncContext, out pendingContexts))
-                    {
-                        // This async context gets its clone from the master list.
-                        pendingContexts = new List<PendingContext>(masterPendingContexts);
-                        asyncPendingContexts[asyncContext] = pendingContexts;
-                    }
-                }
-
-                lock (pendingContexts)
-                {
-                    pendingContexts.SingleOrDefault(c => c.ContextName == context).Post(data);
-                }
-            }
-        }
-
-        public TriggerData GetDataAndClear(object asyncContext)
-        {
-            TriggerData data;
-
-            List<PendingContext> pendingContexts = asyncPendingContexts[asyncContext];
-
-            // We don't want anyone else updating the data in pending contexts at this point.
-            // Furthermore, because we clear the pending contexts after acquiring the data, we
-            // also want to make sure data isn't being posted while we're clearing the "Posted" flag and
-            // the associated data.
-            lock (pendingContexts)
-            {
-                data = new TriggerData(pendingContexts.Select(c => c.Data).ToList());
-                pendingContexts.ForEach(c => c.Clear());
-            }
-
-            return data;
-        }
-
-        public void ClearPendingContexts()
-        {
-            asyncPendingContexts.Clear();
-        }
-    }
-
-    public class TriggerData
-    {
-        public List<object> Data { get; protected set; }
-
-        public TriggerData(List<object> data)
-        {
-            Data = data;
-        }
-    }
-
     public class ContextRouter
     {
         public EventHandler<ContextExceptionInfo> OnException;
@@ -192,7 +27,7 @@ namespace ContextComputing
         // TODO: Ability to associate multiple required types with a context.
         protected ConcurrentDictionary<Type, List<string>> typeContexts = new ConcurrentDictionary<Type, List<string>>();
 
-        protected List<Trigger> triggers = new List<Trigger>();
+        private List<Trigger> triggers = new List<Trigger>();
 
         private Object nullContext = new object();
 
@@ -416,7 +251,7 @@ namespace ContextComputing
             });
         }
 
-        public void Publish(object data, object asyncContext = null)
+        public void Publish(object data, object asyncContext = null, bool isStatic = false)
         {
             asyncContext = asyncContext ?? nullContext;
             List<string> clonedContexts;
@@ -428,16 +263,25 @@ namespace ContextComputing
                     clonedContexts = new List<string>(contexts);
                 }
 
-                clonedContexts.ForEach(c => Publish(c, data, asyncContext));
+                clonedContexts.ForEach(c => Publish(c, data, asyncContext, isStatic));
             }
         }
 
-        public void Publish(string context, object data, object asyncContext = null)
+        public void Publish(string context, object data, object asyncContext = null, bool isStatic = false)
         {
             asyncContext = asyncContext ?? nullContext;
             PublishDataToInstances(context, data, asyncContext);
             PublishDataToOnDemandListeners(context, data, asyncContext);
-            PostContextsToTriggers(context, data, asyncContext);
+            PostContextsToTriggers(context, data, asyncContext, isStatic);
+            CheckForTriggers(context, asyncContext);
+        }
+
+        public void Publish(string context, object data, bool isStatic, object asyncContext = null)
+        {
+            asyncContext = asyncContext ?? nullContext;
+            PublishDataToInstances(context, data, asyncContext);
+            PublishDataToOnDemandListeners(context, data, asyncContext);
+            PostContextsToTriggers(context, data, asyncContext, isStatic);
             CheckForTriggers(context, asyncContext);
         }
 
@@ -473,11 +317,11 @@ namespace ContextComputing
             triggers.ForEach(t => t.ClearPendingContexts());
         }
 
-        private void PostContextsToTriggers(string context, object data, object asyncContext)
+        private void PostContextsToTriggers(string context, object data, object asyncContext, bool isStatic)
         {
             lock (triggers)
             {
-                triggers.ForEach(t => t.Post(context, data, asyncContext));
+                triggers.ForEach(t => t.Post(context, data, asyncContext, isStatic));
             }
         }
 

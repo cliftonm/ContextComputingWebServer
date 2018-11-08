@@ -4,6 +4,8 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 
+using Clifton.Core.ExtensionMethods;
+
 using ContextComputing;
 
 namespace Designer
