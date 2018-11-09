@@ -44,9 +44,9 @@ namespace Listeners
         public void Execute(ContextRouter router, ContextItem item, HttpContext httpContext)
         {
             httpContext.Response.Write(String.Format("<p>{0} Hello World!</p>", DateTime.Now.ToString("ss.fff")));
-            router.Publish("Wait1", httpContext, item.AsyncContext);
-            router.Publish("GetPeople", null, item.AsyncContext);
-            router.Publish("GetPets", null, item.AsyncContext);
+            router.Publish<Wait1>(httpContext, item.AsyncContext);
+            router.Publish<GetPeople>(null, item.AsyncContext);
+            router.Publish<GetPets>(null, item.AsyncContext);
         }
     }
 
@@ -57,7 +57,7 @@ namespace Listeners
         {
             Thread.Sleep(500);
             httpContext.Response.Write(String.Format("<p>{0} Wait 1</p>", DateTime.Now.ToString("ss.fff")));
-            router.Publish("Wait2", httpContext, item.AsyncContext);
+            router.Publish<Wait2>(httpContext, item.AsyncContext);
         }
     }
 
@@ -113,7 +113,7 @@ namespace Listeners
             var people = new People();
             // Simulate the query having taken some time.
             Thread.Sleep(250);
-            router.Publish("People", people, item.AsyncContext);
+            router.Publish<People>(people, item.AsyncContext);
         }
     }
 
@@ -126,7 +126,7 @@ namespace Listeners
             var pets = new Pets();
             // Simulate the query having taken some time.
             Thread.Sleep(750);
-            router.Publish("Pets", pets, item.AsyncContext);
+            router.Publish<Pets>(pets, item.AsyncContext);
         }
     }
 
