@@ -315,39 +315,41 @@ namespace Designer
             listeners.ForEach(l =>
             {
                 var publishes = Model.GetContextsPublished(l);
-                var sourceElement = listenerShapes[l.Name];
 
-                publishes.ForEach(context =>
+                if (listenerShapes.TryGetValue(l.Name, out GraphicElement sourceElement))
                 {
-                    var listenerTypes = otherRouter.GetListeners(context);
-
-                    listenerTypes.ForEach(lt =>
+                    publishes.ForEach(context =>
                     {
-                        if (listenerShapes.TryGetValue(lt.Name, out GraphicElement targetElement))
+                        var listenerTypes = otherRouter.GetListeners(context);
+
+                        listenerTypes.ForEach(lt =>
                         {
-                            Point p1 = sourceElement.DisplayRectangle.Center();
-                            Point p2 = targetElement.DisplayRectangle.Center();
-                            var connector = new DiagonalConnector(canvasController.Canvas, p1, p2);
-                            connector.EndCap = AvailableLineCap.Arrow;
-                            connector.BorderPen = new Pen(Color.Green);
-                            connector.UpdateProperties();
-                            canvasController.AddElement(connector);
-                            connectors.Add(connector);
+                            if (listenerShapes.TryGetValue(lt.Name, out GraphicElement targetElement))
+                            {
+                                Point p1 = sourceElement.DisplayRectangle.Center();
+                                Point p2 = targetElement.DisplayRectangle.Center();
+                                var connector = new DiagonalConnector(canvasController.Canvas, p1, p2);
+                                connector.EndCap = AvailableLineCap.Arrow;
+                                connector.BorderPen = new Pen(Color.Green);
+                                connector.UpdateProperties();
+                                canvasController.AddElement(connector);
+                                connectors.Add(connector);
 
-                            ConnectionPoint cp1 = new ConnectionPoint(GripType.Start, p1);
-                            ConnectionPoint cp2 = new ConnectionPoint(GripType.End, p2);
+                                ConnectionPoint cp1 = new ConnectionPoint(GripType.Start, p1);
+                                ConnectionPoint cp2 = new ConnectionPoint(GripType.End, p2);
 
-                            Connection c1 = new Connection() { ToElement = connector, ToConnectionPoint = cp2, ElementConnectionPoint = cp1 };
-                            Connection c2 = new Connection() { ToElement = connector, ToConnectionPoint = cp1, ElementConnectionPoint = cp2 };
+                                Connection c1 = new Connection() { ToElement = connector, ToConnectionPoint = cp2, ElementConnectionPoint = cp1 };
+                                Connection c2 = new Connection() { ToElement = connector, ToConnectionPoint = cp1, ElementConnectionPoint = cp2 };
 
-                            sourceElement.Connections.Add(c2);
-                            targetElement.Connections.Add(c1);
+                                sourceElement.Connections.Add(c2);
+                                targetElement.Connections.Add(c1);
 
-                            connector.SetConnection(GripType.Start, sourceElement);
-                            connector.SetConnection(GripType.End, targetElement);
-                        }
+                                connector.SetConnection(GripType.Start, sourceElement);
+                                connector.SetConnection(GripType.End, targetElement);
+                            }
+                        });
                     });
-                });
+                }
             });
 
             canvasController.SelectElements(connectors);

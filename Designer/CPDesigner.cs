@@ -29,7 +29,7 @@ namespace Designer
             ContextRouter myContextRouter = InitializeMyContextRouter();
             myContextRouter.OnException += (_, cei) => MessageBox.Show(cei.Exception.ToString(), "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
 
-            WireUpEvents(myContextRouter, otherContextRouter);
+            WireUpEvents(myContextRouter);
             myContextRouter.Run();
 
             Shown += (_, __) => FormShown(myContextRouter, otherContextRouter);
@@ -102,7 +102,7 @@ namespace Designer
         // Using tuples gets ugly because we don't have any context of which listbox is which.
         // Consider using a class as a container, or a container for each listbox so we have strongly-typed parameters.
 
-        protected void WireUpEvents(ContextRouter myContextRouter, ContextRouter otherContextRouter)
+        protected void WireUpEvents(ContextRouter myContextRouter)
         {
             lbListeners.SelectedIndexChanged += (_, __) => myContextRouter.Publish<SelectedListener>(lbListeners.SelectedItem.ToString());
             lbContexts.SelectedIndexChanged += (_, __) => myContextRouter.Publish<SelectedContext>(lbContexts.SelectedItem.ToString());
