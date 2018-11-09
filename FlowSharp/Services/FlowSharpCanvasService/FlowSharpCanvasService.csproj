@@ -31,9 +31,6 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Clifton.Core">
-      <HintPath>..\..\Libs\Clifton.Core.dll</HintPath>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Windows.Forms" />
@@ -49,6 +46,10 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\..\Clifton\Clifton.Core\Clifton.Core.csproj">
+      <Project>{54e73707-81c4-4c7f-9739-446c6d7d5fea}</Project>
+      <Name>Clifton.Core</Name>
+    </ProjectReference>
     <ProjectReference Include="..\..\FlowSharpLib\FlowSharpLib.csproj">
       <Project>{07f65ca7-b8d3-4716-bfbf-812ef4da68be}</Project>
       <Name>FlowSharpLib</Name>

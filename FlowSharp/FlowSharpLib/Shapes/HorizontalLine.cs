@@ -6,6 +6,8 @@
 
 using System.Drawing;
 
+using Clifton.Core.ExtensionMethods;
+
 namespace FlowSharpLib
 {
 	public enum AvailableLineCap

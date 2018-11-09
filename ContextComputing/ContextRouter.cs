@@ -107,6 +107,13 @@ namespace ContextComputing
             return this;
         }
 
+        public ContextRouter AssociateType<T, C>()
+        {
+            AssociateType<T>(typeof(C).Name);
+
+            return this;
+        }
+
         public ContextRouter Register(string context, Type listenerType)
         {
             Assert.That(listenerType.GetInterfaces().Any(t => t == typeof(IContextComputingListener)),
@@ -137,6 +144,13 @@ namespace ContextComputing
         public ContextRouter Register<T>() where T : IContextComputingListener
         {
             Register(typeof(T).Name, typeof(T));
+
+            return this;
+        }
+
+        public ContextRouter Register<T, C>() where T : IContextComputingListener
+        {
+            Register<T>(typeof(C).Name);
 
             return this;
         }

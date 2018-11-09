@@ -29,6 +29,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlowSharpServiceInterfaces"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlowSharpCodeShapeInterfaces", "FlowSharp\Services\FlowSharpCodeShapeInterfaces\FlowSharpCodeShapeInterfaces.csproj", "{8C7D37D1-F9D9-4633-B863-EAC44B9DD999}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Clifton.WinForm.ServiceInterfaces", "Clifton\Clifton.WinForm\Clifton.WinForm.ServiceInterfaces\Clifton.WinForm.ServiceInterfaces.csproj", "{2C326DE7-2F39-49CB-9A2B-1FE6DE7918B0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -79,6 +81,10 @@ Global
 		{8C7D37D1-F9D9-4633-B863-EAC44B9DD999}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8C7D37D1-F9D9-4633-B863-EAC44B9DD999}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8C7D37D1-F9D9-4633-B863-EAC44B9DD999}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2C326DE7-2F39-49CB-9A2B-1FE6DE7918B0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2C326DE7-2F39-49CB-9A2B-1FE6DE7918B0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2C326DE7-2F39-49CB-9A2B-1FE6DE7918B0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2C326DE7-2F39-49CB-9A2B-1FE6DE7918B0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -91,6 +97,7 @@ Global
 		{51BAE79C-A873-4885-A39E-70D66155F78D} = {6CB7C748-53CD-4F7C-8757-7D85E330EF80}
 		{CAA4FD23-1392-4DEE-907A-CB3DC7315A98} = {6CB7C748-53CD-4F7C-8757-7D85E330EF80}
 		{8C7D37D1-F9D9-4633-B863-EAC44B9DD999} = {6CB7C748-53CD-4F7C-8757-7D85E330EF80}
+		{2C326DE7-2F39-49CB-9A2B-1FE6DE7918B0} = {17F11A7C-C084-4872-A3CC-CA81F9621509}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {B4979FC3-34BF-4849-8DD9-4AE294DEACAE}

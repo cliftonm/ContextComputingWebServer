@@ -8,6 +8,8 @@ using ContextComputing;
 
 namespace Listeners
 {
+    public class GetPage { }
+
     public static class Listeners
     {
         public static ContextRouter InitializeContext()
@@ -20,19 +22,19 @@ namespace Listeners
 
         public static void InitializeContext(ContextRouter contextRouter)
         {
-            contextRouter.Register<Wait1>("Wait1")
-                .Register<Wait2>("Wait2")
-                .Register<Wait2Again>("Wait2");
+            contextRouter.Register<Wait1>()
+                .Register<Wait2>()
+                .Register<Wait2Again, Wait2>();
 
             contextRouter
-                .AssociateType<HttpContext>("GetPage")
-                .Register<HelloWorld>("GetPage")
-                .Register<GetPeople>("GetPeople")
-                .Register<GetPets>("GetPets")
+               .AssociateType<HttpContext, GetPage>()
+                .Register<HelloWorld, GetPage>()
+                .Register<GetPeople>()
+                .Register<GetPets>()
                 // TODO: param order dependency
-                .TriggerOn<Render>("People", "Pets", "GetPage")
-                .TriggerOn<Count>("People", "GetPage")
-                .TriggerOn<Count>("Pets", "GetPage");
+                .TriggerOn<Render, People, Pets, GetPage>()
+                .TriggerOn<Count, People, GetPage>()
+                .TriggerOn<Count, Pets, GetPage>();
         }
     }
 

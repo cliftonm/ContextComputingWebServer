@@ -8,8 +8,8 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
-using System.Reflection;
-using System.Windows.Forms;
+
+using Clifton.Core.ExtensionMethods;
 
 namespace FlowSharpLib
 {
@@ -36,11 +36,6 @@ namespace FlowSharpLib
         public static Point Add(this Point p, Point p2)
         {
             return new Point(p.X + p2.X, p.Y + p2.Y);
-        }
-
-        public static int Abs(this int n)
-        {
-            return Math.Abs(n);
         }
 
         public static int Sign(this int n)
