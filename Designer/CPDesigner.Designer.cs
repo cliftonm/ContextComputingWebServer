@@ -43,6 +43,8 @@
             this.pnlDiagram = new System.Windows.Forms.Panel();
             this.label7 = new System.Windows.Forms.Label();
             this.lbPublishes = new System.Windows.Forms.ListBox();
+            this.label8 = new System.Windows.Forms.Label();
+            this.tbLog = new System.Windows.Forms.TextBox();
             this.SuspendLayout();
             // 
             // lbListeners
@@ -93,7 +95,7 @@
             // lbParameters
             // 
             this.lbParameters.FormattingEnabled = true;
-            this.lbParameters.Location = new System.Drawing.Point(286, 51);
+            this.lbParameters.Location = new System.Drawing.Point(221, 66);
             this.lbParameters.Name = "lbParameters";
             this.lbParameters.Size = new System.Drawing.Size(260, 82);
             this.lbParameters.TabIndex = 6;
@@ -101,7 +103,7 @@
             // label4
             // 
             this.label4.AutoSize = true;
-            this.label4.Location = new System.Drawing.Point(217, 147);
+            this.label4.Location = new System.Drawing.Point(218, 173);
             this.label4.Name = "label4";
             this.label4.Size = new System.Drawing.Size(51, 13);
             this.label4.TabIndex = 7;
@@ -110,15 +112,15 @@
             // lbContexts
             // 
             this.lbContexts.FormattingEnabled = true;
-            this.lbContexts.Location = new System.Drawing.Point(220, 163);
+            this.lbContexts.Location = new System.Drawing.Point(220, 189);
             this.lbContexts.Name = "lbContexts";
-            this.lbContexts.Size = new System.Drawing.Size(165, 225);
+            this.lbContexts.Size = new System.Drawing.Size(165, 199);
             this.lbContexts.TabIndex = 8;
             // 
             // label5
             // 
             this.label5.AutoSize = true;
-            this.label5.Location = new System.Drawing.Point(388, 147);
+            this.label5.Location = new System.Drawing.Point(389, 173);
             this.label5.Name = "label5";
             this.label5.Size = new System.Drawing.Size(82, 13);
             this.label5.TabIndex = 9;
@@ -127,9 +129,9 @@
             // lbActiveListeners
             // 
             this.lbActiveListeners.FormattingEnabled = true;
-            this.lbActiveListeners.Location = new System.Drawing.Point(391, 163);
+            this.lbActiveListeners.Location = new System.Drawing.Point(391, 189);
             this.lbActiveListeners.Name = "lbActiveListeners";
-            this.lbActiveListeners.Size = new System.Drawing.Size(149, 108);
+            this.lbActiveListeners.Size = new System.Drawing.Size(149, 82);
             this.lbActiveListeners.TabIndex = 10;
             // 
             // label6
@@ -162,7 +164,7 @@
             // label7
             // 
             this.label7.AutoSize = true;
-            this.label7.Location = new System.Drawing.Point(577, 50);
+            this.label7.Location = new System.Drawing.Point(497, 50);
             this.label7.Name = "label7";
             this.label7.Size = new System.Drawing.Size(55, 13);
             this.label7.TabIndex = 14;
@@ -171,16 +173,37 @@
             // lbPublishes
             // 
             this.lbPublishes.FormattingEnabled = true;
-            this.lbPublishes.Location = new System.Drawing.Point(638, 51);
+            this.lbPublishes.Location = new System.Drawing.Point(500, 66);
             this.lbPublishes.Name = "lbPublishes";
             this.lbPublishes.Size = new System.Drawing.Size(130, 82);
             this.lbPublishes.TabIndex = 15;
+            // 
+            // label8
+            // 
+            this.label8.AutoSize = true;
+            this.label8.Location = new System.Drawing.Point(655, 50);
+            this.label8.Name = "label8";
+            this.label8.Size = new System.Drawing.Size(28, 13);
+            this.label8.TabIndex = 16;
+            this.label8.Text = "Log:";
+            // 
+            // tbLog
+            // 
+            this.tbLog.Location = new System.Drawing.Point(658, 67);
+            this.tbLog.Multiline = true;
+            this.tbLog.Name = "tbLog";
+            this.tbLog.ReadOnly = true;
+            this.tbLog.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
+            this.tbLog.Size = new System.Drawing.Size(361, 204);
+            this.tbLog.TabIndex = 17;
             // 
             // CPDesigner
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1031, 647);
+            this.Controls.Add(this.tbLog);
+            this.Controls.Add(this.label8);
             this.Controls.Add(this.lbPublishes);
             this.Controls.Add(this.label7);
             this.Controls.Add(this.pnlDiagram);
@@ -220,6 +243,8 @@
         private System.Windows.Forms.Panel pnlDiagram;
         private System.Windows.Forms.Label label7;
         private System.Windows.Forms.ListBox lbPublishes;
+        private System.Windows.Forms.Label label8;
+        private System.Windows.Forms.TextBox tbLog;
     }
 }
 

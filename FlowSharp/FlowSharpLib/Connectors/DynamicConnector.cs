@@ -229,8 +229,9 @@ namespace FlowSharpLib
             int y1 = StartPoint.Y.Min(EndPoint.Y).MinDelta(hyAdjust);
             int x2 = StartPoint.X.Max(EndPoint.X).MaxDelta(vxAdjust);
             int y2 = StartPoint.Y.Max(EndPoint.Y).MaxDelta(hyAdjust);
+            var rect = new Rectangle(x1, y1, x2 - x1, y2 - y1);
 
-            return new Rectangle(x1, y1, x2 - x1, y2 - y1);
+            return rect;
         }
     }
 }

@@ -797,7 +797,7 @@ namespace FlowSharpLib
             //gr.TextContrast = 0;
             //TextFormatFlags flags = TextFormatFlags.Right | TextFormatFlags.VerticalCenter | TextFormatFlags.WordBreak;
             //TextRenderer.DrawText(gr, Text, TextFont, DisplayRectangle, TextColor, flags);
-
+            /*
             switch (textAlign)
             {
                 case ContentAlignment.TopLeft:
@@ -840,6 +840,7 @@ namespace FlowSharpLib
                     textpos = ZoomRectangle.Center().Move((int)(-size.Width / 2), (int)(-size.Height / 2));
                     break;
             }
+            */
 
             TextFormatFlags tff = TextFormatFlags.Default;
 
@@ -886,7 +887,8 @@ namespace FlowSharpLib
                     break;
             }
 
-            TextRenderer.DrawText(gr, text, font, ZoomRectangle.Grow(-3), textColor, FillColor, tff);
+            var rect = ZoomRectangle; // .Grow(-3);  Why -3?
+            TextRenderer.DrawText(gr, text, font, rect, textColor, FillColor, tff);
             // gr.DrawString(text, textFont, brush, textpos);
             brush.Dispose();
 

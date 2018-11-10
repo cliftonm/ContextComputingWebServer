@@ -318,18 +318,29 @@ namespace ContextComputing
             }
         }
 
-        public void Publish(string context, object data, object asyncContext = null, bool isStatic = false)
-        {
-            asyncContext = asyncContext ?? nullContext;
-            PublishDataToInstances(context, data, asyncContext);
-            PublishDataToOnDemandListeners(context, data, asyncContext);
-            PostContextsToTriggers(context, data, asyncContext, isStatic);
-            CheckForTriggers(context, asyncContext);
-        }
-
         public void Publish<Context>(object data, object asyncContext = null, bool isStatic = false)
         {
             string context = typeof(Context).Name;
+            Publish(context, data, asyncContext, isStatic);
+        }
+
+        public void Publish(string context, object data, object asyncContext = null, bool isStatic = false)
+        {
+            InternalPublish<LogInfo>(new LogInfo("Publishing " + context), null, false);
+            InternalPublish(context, data, asyncContext, isStatic);
+        }
+
+        /// <summary>
+        /// Prevents recursive publish.
+        /// </summary>
+        private void InternalPublish<Context>(object data, object asyncContext, bool isStatic)
+        {
+            string context = typeof(Context).Name;
+            InternalPublish(context, data, asyncContext, isStatic);
+        }
+
+        private void InternalPublish(string context, object data, object asyncContext, bool isStatic)
+        {
             asyncContext = asyncContext ?? nullContext;
             PublishDataToInstances(context, data, asyncContext);
             PublishDataToOnDemandListeners(context, data, asyncContext);
@@ -379,14 +390,29 @@ namespace ContextComputing
 
         private void CheckForTriggers(string context, object asyncContext)
         {
-            triggers.Where(t => t.AllPosted(asyncContext)).ForEach(t =>
+            // We lock the loop that enqueues triggers because we can have a race condition
+            // where a thread publishes context-data that reruns this loop, causing multiple
+            // triggers of the same listener(s).  In the meantime, this loop has cleared the
+            // data for a trigger, but second "retrigger" enqueued anyways.
+            // We see this when publishing LogInfo.
+            lock (triggers)
             {
-                IContextComputingListener listener = (IContextComputingListener)Activator.CreateInstance(t.ListenerType);
-                TriggerData data = t.GetDataAndClear(asyncContext);
-                ContextItem contextItem = new ContextItem(null, data, asyncContext);
-                Enqueue(listener, contextItem, data);
-                semQueue.Release();
-            });
+                var currentTriggers = triggers.Where(t => t.AllPosted(asyncContext));
+                int count = currentTriggers.Count();
+
+                if (count > 0)
+                {
+                    currentTriggers.ForEach(t =>
+                    {
+                        IContextComputingListener listener = (IContextComputingListener)Activator.CreateInstance(t.ListenerType);
+                        TriggerData data = t.GetDataAndClear(asyncContext);
+                        ContextItem contextItem = new ContextItem(null, data, asyncContext);
+                        Enqueue(listener, contextItem, data);
+                    });
+
+                    semQueue.Release(count);
+                }
+            }
         }
 
         private void PublishDataToInstances(string context, object data, object asyncContext)
@@ -461,30 +487,52 @@ namespace ContextComputing
             try
             {
                 // Any method on the listener that doesn't take any parameters.
-                methods.Where(m => m.GetParameters().Length == 2).ForEach(m => m.Invoke(listener, new object[] { this, contextItem }));
+                methods.Where(m => m.GetParameters().Length == 2).ForEach(m =>
+                {
+                    InternalPublish<LogInfo>(new LogInfo("Routing to " + t.Name), null, false);
+                    m.Invoke(listener, new object[] { this, contextItem });
+                });
 
                 if (data is TriggerData)
                 {
                     // Put trigger data into param list in the order it's in the list.
                     List<object> parms = new List<object>() { this, contextItem };
                     parms.AddRange(((TriggerData)data).Data);
+                    Assert.That(!parms.Any(p => p == null), "One or more parameters is null.  Null parameters is not permitted.\r\n" + String.Join("\r\n", parms.Select(p => p?.GetType()?.Name ?? "???")));
+                    bool sendingLog = parms.Any(p => p?.GetType() == typeof(LogInfo));
 
                     var mi = methods.SingleOrDefault(m =>
                     {
                         var methodParamTypes = m.GetParameters().Select(p => p.ParameterType);
-                        var paramTypes = parms.Select(p => p.GetType());
+                        var paramTypes = parms.Select(p => p?.GetType());
                         bool equal = methodParamTypes.SequenceEqual(paramTypes);
 
                         return equal;
                     });
 
-                   Assert.That(mi != null, "No suitable method in " + listener.GetType().Name + " found for parameters:\r\n " + String.Join("\r\n", parms.Select(p => p.GetType().Name)));
-                   mi.Invoke(listener, parms.ToArray());
+                    Assert.That(mi != null, "No suitable method in " + listener.GetType().Name + " found for parameters:\r\n " + String.Join("\r\n", parms.Select(p => p?.GetType()?.Name ?? "???")));
+
+                    if (!sendingLog)
+                    {
+                        InternalPublish<LogInfo>(new LogInfo("Routing to " + t.Name), null, false);
+                    }
+
+                    mi.Invoke(listener, parms.ToArray());
                 }
                 else
                 {
                     var methods3parms = methods.Where(m => m.GetParameters().Length == 3 && m.GetParameters().Last().ParameterType == data.GetType());
-                    methods3parms.ForEach(m => m.Invoke(listener, new object[] { this, contextItem, data }));
+                    methods3parms.ForEach(m =>
+                    {
+                        bool sendingLog = data is LogInfo;
+
+                        if (!sendingLog)
+                        {
+                            InternalPublish<LogInfo>(new LogInfo("Routing to " + t.Name), null, false);
+                        }
+
+                        m.Invoke(listener, new object[] { this, contextItem, data });
+                    });
                 }
             }
             catch (TargetInvocationException ex)

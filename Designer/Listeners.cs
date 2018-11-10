@@ -12,9 +12,10 @@ using ContextComputing;
 namespace Designer
 {
     // Type holder.
+    public class ListenerTextBox { }
+    public class LogTextBox { }
     public class ShowListenerInfo { }
     public class ListenerListBox { }
-    public class ListenerTextBox { }
     public class ContextListBox { }
     public class ParametersListBox { }
     public class PublishesListBox { }
@@ -24,6 +25,19 @@ namespace Designer
     public class SelectedListener { }
     public class SelectedContext { }
     public class ActiveListenersListBox { }
+
+    public class LogEntry : IContextComputingListener
+    {
+        const string CRLF = "\r\n";
+
+        public void Execute(ContextRouter router, ContextItem item, TextBox textBox, LogInfo info)
+        {
+            textBox.BeginInvoke(() =>
+            {
+                textBox.AppendText(info.Message + CRLF);
+            });
+        }
+    }
 
     public class ShowListeners : IContextComputingListener
     {
@@ -329,6 +343,8 @@ namespace Designer
                                 Point p1 = sourceElement.DisplayRectangle.Center();
                                 Point p2 = targetElement.DisplayRectangle.Center();
                                 var connector = new DiagonalConnector(canvasController.Canvas, p1, p2);
+                                connector.Text = context;
+                                connector.TextAlign = ContentAlignment.MiddleCenter;
                                 connector.EndCap = AvailableLineCap.Arrow;
                                 connector.BorderPen = new Pen(Color.Green);
                                 connector.UpdateProperties();

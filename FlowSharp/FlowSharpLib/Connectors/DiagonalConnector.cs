@@ -100,6 +100,7 @@ namespace FlowSharpLib
 
         public override void GetBackground()
         {
+            UpdateDisplayRectangle(canvas.AntiAliasGraphics);
             InternalGetBackground();
         }
 
@@ -120,6 +121,7 @@ namespace FlowSharpLib
 
         public override void Draw(Graphics gr, bool showSelection = true)
         {
+            UpdateDisplayRectangle(gr);
             Pen pen = (Pen)BorderPen.Clone();
 
             if ( (ShowConnectorAsSelected || Selected) && showSelection)
@@ -131,6 +133,25 @@ namespace FlowSharpLib
             pen.Dispose();
 
             base.Draw(gr, showSelection);
+        }
+
+        protected void UpdateDisplayRectangle(Graphics gr)
+        {
+            SizeF size = TextRenderer.MeasureText(gr, Text, TextFont);
+
+            var rect = DisplayRectangle; // .Grow(-3);  Why -3?
+
+            if (rect.Width < size.Width)
+            {
+                rect = rect.Grow((size.Width - ZoomRectangle.Width) / 2, 0);
+            }
+
+            if (rect.Height < size.Height)
+            {
+                rect = rect.Grow(0, (size.Height - ZoomRectangle.Height) / 2);
+            }
+
+            DisplayRectangle = rect;
         }
     }
 }

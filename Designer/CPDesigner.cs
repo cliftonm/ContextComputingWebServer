@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Drawing;
-using System.Linq;
 using System.Reflection;
 using System.Windows.Forms;
 
@@ -68,8 +65,9 @@ namespace Designer
         {
             // Publish after the form is shown, otherwise the InvokeRequired will return false even though
             // we're handling the publish on a separate thread.
-            myContextRouter.Publish<ListenerListBox>(lbListeners, isStatic: true);
             myContextRouter.Publish<ListenerTextBox>(tbListener, isStatic: true);
+            myContextRouter.Publish<LogTextBox>(tbLog, isStatic: true);
+            myContextRouter.Publish<ListenerListBox>(lbListeners, isStatic: true);
             myContextRouter.Publish<ContextListBox>(lbContexts, isStatic: true);
             myContextRouter.Publish<ParametersListBox>(lbParameters, isStatic: true);
             myContextRouter.Publish<PublishesListBox>(lbPublishes, isStatic: true);
@@ -94,6 +92,7 @@ namespace Designer
                 .TriggerOn<ShowPublishedContext, PublishesListBox, SelectedListener>()
                 .TriggerOn<ShowListenerParameters, ParametersListBox, SelectedListener>()
                 .TriggerOn<ShowActiveListeners, OtherContextRouter, ActiveListenersListBox, SelectedContext>()
+                .TriggerOn<LogEntry, LogTextBox, LogInfo>()
                 ;
 
             return cr;
