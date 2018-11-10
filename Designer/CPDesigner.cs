@@ -22,8 +22,9 @@ namespace Designer
             InitializeComponent();
 
             AppDomain.CurrentDomain.ReflectionOnlyAssemblyResolve += ReflectionOnlyAssemblyResolve;
-            ContextRouter otherContextRouter = Listeners.Listeners.InitializeContext();
             ContextRouter myContextRouter = InitializeMyContextRouter();
+            // ContextRouter otherContextRouter = myContextRouter;
+            ContextRouter otherContextRouter = Listeners.Listeners.InitializeContext();
             myContextRouter.OnException += (_, cei) => MessageBox.Show(cei.Exception.ToString(), "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
 
             WireUpEvents(myContextRouter);
@@ -84,13 +85,13 @@ namespace Designer
 
             ContextRouter cr = new ContextRouter();
             cr
-                .TriggerOn<ShowListeners, ListenerListBox>()
+                .TriggerOn<ShowListeners, OtherContextRouter, ListenerListBox>()
                 .TriggerOn<ShowContexts, OtherContextRouter, ContextListBox>()
                 .TriggerOn<ShowTypeMaps, OtherContextRouter,  ContextTypeMapsListBox>()
                 .TriggerOn<DrawContext, OtherContextRouter, CanvasController, StartingListener>()
                 .TriggerOn<ShowListenerSelection, ListenerTextBox, SelectedListener>()
-                .TriggerOn<ShowPublishedContext, PublishesListBox, SelectedListener>()
-                .TriggerOn<ShowListenerParameters, ParametersListBox, SelectedListener>()
+                .TriggerOn<ShowPublishedContext, OtherContextRouter, PublishesListBox, SelectedListener>()
+                .TriggerOn<ShowListenerParameters, OtherContextRouter, ParametersListBox, SelectedListener>()
                 .TriggerOn<ShowActiveListeners, OtherContextRouter, ActiveListenersListBox, SelectedContext>()
                 .TriggerOn<LogEntry, LogTextBox, LogInfo>()
                 ;

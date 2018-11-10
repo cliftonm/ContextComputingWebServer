@@ -41,9 +41,10 @@ namespace Designer
 
     public class ShowListeners : IContextComputingListener
     {
-        public void Execute(ContextRouter router, ContextItem item, ListBox listBox)
+        public void Execute(ContextRouter router, ContextItem item, ContextRouter otherRouter, ListBox listBox)
         {
-            var listeners = Model.GetListeners();
+            // var listeners = Model.GetListeners();
+            var listeners = otherRouter.GetAllListeners();
 
             listBox.BeginInvoke(() =>
             {
@@ -91,9 +92,10 @@ namespace Designer
 
     public class ShowListenerParameters : IContextComputingListener
     {
-        public void Execute(ContextRouter router, ContextItem item, ListBox listBox, string name)
+        public void Execute(ContextRouter router, ContextItem item, ContextRouter otherRouter, ListBox listBox, string name)
         {
-            var listeners = Model.GetListeners();
+            // var listeners = Model.GetListeners();
+            var listeners = otherRouter.GetAllListeners();
             var executors = Model.GetParameters(listeners, name);
 
             listBox.BeginInvoke(() =>
@@ -106,9 +108,10 @@ namespace Designer
 
     public class ShowPublishedContext : IContextComputingListener
     {
-        public void Execute(ContextRouter router, ContextItem item, ListBox listBox, string name)
+        public void Execute(ContextRouter router, ContextItem item, ContextRouter otherRouter, ListBox listBox, string name)
         {
-            var listener = Model.GetListeners().Single(l => l.Name == name);
+            // var listener = Model.GetListeners().Single(l => l.Name == name);
+            var listener = otherRouter.GetAllListeners().Single(l => l.Name == name);
 
             listBox.BeginInvoke(() =>
             {
@@ -309,7 +312,8 @@ namespace Designer
                 });
             }
 
-            var listeners = Model.GetListeners();
+            // var listeners = Model.GetListeners();
+            var listeners = otherRouter.GetAllListeners();
 
             // Start with entry point type.
             Type t = listeners.Single(l => l.Name == startingListenerName);
@@ -343,7 +347,7 @@ namespace Designer
                                 Point p1 = sourceElement.DisplayRectangle.Center();
                                 Point p2 = targetElement.DisplayRectangle.Center();
                                 var connector = new DiagonalConnector(canvasController.Canvas, p1, p2);
-                                connector.Text = context;
+                                connector.Text = context; // String.Join(", ", publishes); // context;
                                 connector.TextAlign = ContentAlignment.MiddleCenter;
                                 connector.EndCap = AvailableLineCap.Arrow;
                                 connector.BorderPen = new Pen(Color.Green);

@@ -23,11 +23,16 @@ namespace Designer
 
     public static class Model
     {
+        /*
         public static IEnumerable<Type> GetListeners()
         {
             var dlls = Directory.GetFiles(".\\", "*.dll");
+            var exes = Directory.GetFiles(".\\", "*.exe");
+            var assemblies = new List<string>();
+            assemblies.AddRange(dlls);
+            assemblies.AddRange(exes);
 
-            var methods = dlls.Aggregate(new List<Type>(), (acc, dll) =>
+            var methods = assemblies.Aggregate(new List<Type>(), (acc, dll) =>
             {
                 try
                 {
@@ -42,6 +47,7 @@ namespace Designer
 
             return methods;
         }
+        */
 
         /// <summary>
         /// Returns a list of comma-separated parameters for all Execute methods implemented by the listener.

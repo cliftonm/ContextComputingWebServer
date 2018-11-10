@@ -43,6 +43,17 @@ namespace ContextComputing
             return ret.Distinct().ToList();
         }
 
+        public List<Type> GetAllListeners()
+        {
+            List<Type> ret = new List<Type>();
+            ret.AddRange(contextListeners.Select(cl => cl.Key.GetType()));
+            contextListenerTypes.ForEach(kvp => ret.AddRange(kvp.Value));
+            ret.AddRange(typeContexts.Select(tc => tc.Key));
+            ret.AddRange(triggers.Select(t => t.ListenerType));
+
+            return ret.Distinct().ToList();
+        }
+
         public List<Type> GetListeners(string context)
         {
             List<Type> ret = new List<Type>();
