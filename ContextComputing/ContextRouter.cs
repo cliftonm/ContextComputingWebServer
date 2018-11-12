@@ -35,8 +35,8 @@ namespace ContextComputing
         {
             List<string> ret = new List<string>();
 
-            contextListeners.ForEach(kvp => ret.Add(kvp.Key));
-            contextListenerTypes.ForEach(kvp => ret.Add(kvp.Key));
+            ret.AddRange(contextListeners.Select(cl => cl.Key));
+            ret.AddRange(contextListenerTypes.Select(clt => clt.Key));
             typeContexts.ForEach(kvp => ret.AddRange(kvp.Value));
             triggers.ForEach(t => ret.AddRange(t.Contexts));
 
@@ -46,7 +46,7 @@ namespace ContextComputing
         public List<Type> GetAllListeners()
         {
             List<Type> ret = new List<Type>();
-            ret.AddRange(contextListeners.Select(cl => cl.Key.GetType()));
+            contextListeners.ForEach(kvp => ret.AddRange(kvp.Value.Select(v => v.listener.GetType())));
             contextListenerTypes.ForEach(kvp => ret.AddRange(kvp.Value));
             ret.AddRange(typeContexts.Select(tc => tc.Key));
             ret.AddRange(triggers.Select(t => t.ListenerType));
@@ -169,6 +169,13 @@ namespace ContextComputing
         public ContextRouter Register<T>(string context) where T : IContextComputingListener
         {
             Register(context, typeof(T));
+
+            return this;
+        }
+
+        public ContextRouter Register<C>(IContextComputingListener listener)
+        {
+            Register(typeof(C).Name, listener);
 
             return this;
         }
@@ -493,7 +500,7 @@ namespace ContextComputing
         {
             // Use runtime binding to invoke the Execute method.
             Type t = listener.GetType();
-            IEnumerable<MethodInfo> methods = t.GetMethods(BindingFlags.Instance | BindingFlags.Public).Where(m => m.Name == "Execute");
+            IEnumerable<MethodInfo> methods = t.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic).Where(m => m.Name == "Execute");
 
             try
             {

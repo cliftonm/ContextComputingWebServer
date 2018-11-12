@@ -72,13 +72,17 @@ namespace Designer
         {
             List<string> ret = new List<string>();
 
-            var methods = t.GetMethods().Where(m => m.Name == "Execute");
+            var methods = t.GetMethods(
+                BindingFlags.Instance | 
+                BindingFlags.Static| 
+                BindingFlags.Public | 
+                BindingFlags.NonPublic).Where(m => m.Name == "Execute");
 
             methods.ForEach(m =>
             {
                 // Because the assemblies are loaded for reflection only, we have to use CustomAttributesData.
                 var cad = m.GetCustomAttributesData();
-                var attr = cad.SingleOrDefault(c => c.AttributeType.Name == typeof(PublishesAttribute).Name);
+                var attr = cad.SingleOrDefault(c => c.AttributeType.Name == typeof(ContextComputing.PublishesAttribute).Name);
 
                 if (attr != null)
                 {

@@ -25,6 +25,18 @@ namespace Designer
     public class SelectedListener { }
     public class SelectedContext { }
     public class ActiveListenersListBox { }
+    public class Startup { }
+
+    public class Logger : IContextComputingListener
+    {
+        [Listener]
+        [Publishes(new string[] { "A", "B" })]
+        public void LogMe(ContextRouter router, ContextItem item, 
+            [Context(nameof(LogTextBox))]   TextBox textBox, 
+            [Context(nameof(LogInfo))]      LogInfo info)
+        {
+        }
+    }
 
     public class LogEntry : IContextComputingListener
     {
@@ -186,7 +198,7 @@ namespace Designer
                 }
             }
 
-            (int, int, Direction) GetFreeCell(Type forType, (int x, int y) srcCell, (int x, int y, Direction dir)[] tryPoints, IEnumerable<(int x, int y)> occupiedPoints)
+            (int, int, Direction) GetFreeCell(Type forType, (int x, int y) srcCell, List<(int x, int y)> requiredCells, (int x, int y, Direction dir)[] tryPoints, IEnumerable<(int x, int y)> occupiedPoints)
             {
                 (int, int, Direction) p = (0, 0, Direction.None);
                 bool found = false;
@@ -196,10 +208,18 @@ namespace Designer
                     int x = pointToTry.x + srcCell.x;
                     int y = pointToTry.y + srcCell.y;
 
-                    if (!occupiedPoints.Any(oc => oc.x == x && oc.y == y))
+                    foreach (var rp in requiredCells)
                     {
-                        p = (x, y, pointToTry.dir);
-                        found = true;
+                        if (!occupiedPoints.Any(oc => oc.x == x + rp.x && oc.y == y + rp.y))
+                        {
+                            p = (x, y, pointToTry.dir);
+                            found = true;
+                            break;
+                        }
+                    }
+
+                    if (found)
+                    {
                         break;
                     }
                 }
@@ -212,10 +232,18 @@ namespace Designer
                         int x = pointToTry.x + srcCell.x;
                         int y = pointToTry.y + srcCell.y;
 
-                        if (!occupiedPoints.Any(oc => oc.x == x && oc.y == y))
+                        foreach (var rp in requiredCells)
                         {
-                            p = (x, y, Direction.Center);
-                            found = true;
+                            if (!occupiedPoints.Any(oc => oc.x == x + rp.x && oc.y == y + rp.y))
+                            {
+                                p = (x, y, Direction.Center);
+                                found = true;
+                                break;
+                            }
+                        }
+
+                        if (found)
+                        {
                             break;
                         }
                     }
@@ -244,53 +272,79 @@ namespace Designer
                     notPlacedListeners.ForEach(tl =>
                     {
                         (int x, int y, Direction dir) p = (0, 0, Direction.None);
+                        List<(int x, int y)> requiredCells = new List<(int x, int y)>();
+
+                        box = new Box(canvasController.Canvas);
+                        box.Text = tl.Name;
+                        listenerShapes[tl.Name] = box;
+                        requiredCells.Add((0, 0));
+
+                        // TODO: FIX KLUDGE
+                        var boxTextSize = box.TextSize;
+
+                        /*
+                        if (boxTextSize.Width > 100)
+                        {
+                            requiredCells.Add((-1, 0));
+                            requiredCells.Add((1, 0));
+                        }
+                        */
 
                         switch (sourceListenerDir)
                         {
                             case Direction.Center:
                                 {
                                     (int, int, Direction)[] tryPoints = new(int, int, Direction)[] { (0, -1, Direction.Up), (-1, 1, Direction.Down), (1, 1, Direction.Down), (-1, -1, Direction.Left), (1, -1, Direction.Right), (-1, 0, Direction.Left), (0, 1, Direction.Right) };
-                                    p = GetFreeCell(tl, sourceCell, tryPoints, occupiedCells.Select(oc => oc.p));
+                                    p = GetFreeCell(tl, sourceCell, requiredCells, tryPoints, occupiedCells.Select(oc => oc.p));
                                     break;
                                 }
 
                             case Direction.Up:
                                 {
                                     (int, int, Direction)[] tryPoints = new(int, int, Direction)[] { (0, -1, Direction.Up), (-1, -1, Direction.Left), (1, -1, Direction.Right), (-1, 0, Direction.Left), (1, 0, Direction.Right), (-1, 1, Direction.Left), (1, 1, Direction.Right) };
-                                    p = GetFreeCell(tl, sourceCell, tryPoints, occupiedCells.Select(oc => oc.p));
+                                    p = GetFreeCell(tl, sourceCell, requiredCells, tryPoints, occupiedCells.Select(oc => oc.p));
                                     break;
                                 }
 
                             case Direction.Down:
                                 {
                                     (int, int, Direction)[] tryPoints = new(int, int, Direction)[] { (0, 1, Direction.Down), (-1, 1, Direction.Down), (1, 1, Direction.Down), (-1, -1, Direction.Left), (1, -1, Direction.Right), (-1, 0, Direction.Left), (0, 1, Direction.Right) };
-                                    p = GetFreeCell(tl, sourceCell, tryPoints, occupiedCells.Select(oc => oc.p));
+                                    p = GetFreeCell(tl, sourceCell, requiredCells, tryPoints, occupiedCells.Select(oc => oc.p));
                                     break;
                                 }
 
                             case Direction.Left:
                                 {
                                     (int, int, Direction)[] tryPoints = new(int, int, Direction)[] { (-1, 0, Direction.Left), (-1, 1, Direction.Down), (1, 1, Direction.Down), (-1, -1, Direction.Up), (1, -1, Direction.Up), (0, -1, Direction.Up), (0, 1, Direction.Down) };
-                                    p = GetFreeCell(tl, sourceCell, tryPoints, occupiedCells.Select(oc => oc.p));
+                                    p = GetFreeCell(tl, sourceCell, requiredCells, tryPoints, occupiedCells.Select(oc => oc.p));
                                     break;
                                 }
 
                             case Direction.Right:
                                 {
                                     (int, int, Direction)[] tryPoints = new(int, int, Direction)[] { (1, 0, Direction.Right), (-1, 1, Direction.Down), (1, 1, Direction.Down), (-1, -1, Direction.Up), (1, -1, Direction.Up), (0, -1, Direction.Up), (0, 1, Direction.Down) };
-                                    p = GetFreeCell(tl, sourceCell, tryPoints, occupiedCells.Select(oc => oc.p));
+                                    p = GetFreeCell(tl, sourceCell, requiredCells, tryPoints, occupiedCells.Select(oc => oc.p));
                                     break;
                                 }
                         }
 
                         placedListeners.Add(((p.x, p.y), tl, p.dir));
-                        box = new Box(canvasController.Canvas);
-                        box.Text = tl.Name;
-                        listenerShapes[tl.Name] = box;
                         occupiedCells.Add(((p.x, p.y), box));
+
+                        /*
+                        // TODO: FIX KLUDGE
+                        if (boxTextSize.Width > 100)
+                        {
+                            occupiedCells.Add(((p.x - 1, p.y), null));
+                            occupiedCells.Add(((p.x + 1, p.y), null));
+                        }
+                        */
+
                         // PlaceTargetListeners((p.x, p.y), tl, p.dir);
                     });
 
+                    // Or this if we don't want to place listeners recursively as they are dropped
+                    // but instead recurse after all listeners at this level are dropped.
                     notPlacedListeners.ForEach(tl =>
                     {
                         var placed = placedListeners.Single(pl => pl.type.Name == tl.Name);
@@ -304,12 +358,37 @@ namespace Designer
                 int cx = canvasController.Canvas.Width / 2;
                 int cy = canvasController.Canvas.Height / 2;
 
-                occupiedCells.ForEach(oc =>
+                occupiedCells.Where(oc => oc.el != null).ForEach(oc =>
                 {
                     int x = oc.p.x * 150 + cx;
                     int y = oc.p.y * 75 + cy;
-                    oc.el.DisplayRectangle = new Rectangle(x, y, 100, 30);
+                    oc.el.DisplayRectangle = new Rectangle(x, y, (oc.el.TextSize.Width + 10).to_i(), 30);
+                    // oc.el.DisplayRectangle = new Rectangle(x, y, 100, 30);
                 });
+            }
+
+            void GetConnectionAnchorPoints(GraphicElement sourceElement, GraphicElement targetElement, out Point p1, out Point p2)
+            {
+                if (sourceElement.DisplayRectangle.Y < targetElement.DisplayRectangle.Y)
+                {
+                    p1 = sourceElement.DisplayRectangle.BottomMiddle();
+                    p2 = targetElement.DisplayRectangle.TopMiddle();
+                }
+                else if (sourceElement.DisplayRectangle.Y > targetElement.DisplayRectangle.Y)
+                {
+                    p1 = sourceElement.DisplayRectangle.TopMiddle();
+                    p2 = targetElement.DisplayRectangle.BottomMiddle();
+                }
+                else if (sourceElement.DisplayRectangle.X < targetElement.DisplayRectangle.X)
+                {
+                    p1 = sourceElement.DisplayRectangle.RightMiddle();
+                    p2 = targetElement.DisplayRectangle.LeftMiddle();
+                }
+                else
+                {
+                    p1 = sourceElement.DisplayRectangle.LeftMiddle();
+                    p2 = targetElement.DisplayRectangle.RightMiddle();
+                }
             }
 
             // var listeners = Model.GetListeners();
@@ -323,6 +402,15 @@ namespace Designer
             box.Text = t.Name;
             listenerShapes[t.Name] = box;
             occupiedCells.Add(((0, 0), box));
+
+            // TODO: FIX KLUDGE
+            var size = box.TextSize;
+            if (size.Width > 100)
+            {
+                occupiedCells.Add(((-1, 0), null));
+                occupiedCells.Add(((1, 0), null));
+            }
+
             PlaceTargetListeners((0, 0), t, dir);
             PlaceShapes();
 
@@ -344,8 +432,7 @@ namespace Designer
                         {
                             if (listenerShapes.TryGetValue(lt.Name, out GraphicElement targetElement))
                             {
-                                Point p1 = sourceElement.DisplayRectangle.Center();
-                                Point p2 = targetElement.DisplayRectangle.Center();
+                                GetConnectionAnchorPoints(sourceElement, targetElement, out Point p1, out Point p2);
                                 var connector = new DiagonalConnector(canvasController.Canvas, p1, p2);
                                 connector.Text = context; // String.Join(", ", publishes); // context;
                                 connector.TextAlign = ContentAlignment.MiddleCenter;
@@ -375,8 +462,6 @@ namespace Designer
             canvasController.SelectElements(connectors);
             canvasController.Topmost();
             connectors.ForEach(c => canvasController.DeselectElement(c));
-
-            canvasController.Canvas.Invalidate();
         }
     }
 }

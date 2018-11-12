@@ -13,7 +13,7 @@ using ContextComputing;
 
 namespace Designer
 {
-    public partial class CPDesigner : Form
+    public partial class CPDesigner : Form, IContextComputingListener
     {
         protected BaseController canvasController;
 
@@ -23,14 +23,14 @@ namespace Designer
 
             AppDomain.CurrentDomain.ReflectionOnlyAssemblyResolve += ReflectionOnlyAssemblyResolve;
             ContextRouter myContextRouter = InitializeMyContextRouter();
-            // ContextRouter otherContextRouter = myContextRouter;
-            ContextRouter otherContextRouter = Listeners.Listeners.InitializeContext();
+            ContextRouter otherContextRouter = myContextRouter;
+            // ContextRouter otherContextRouter = Listeners.Listeners.InitializeContext();
             myContextRouter.OnException += (_, cei) => MessageBox.Show(cei.Exception.ToString(), "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
 
             WireUpEvents(myContextRouter);
             myContextRouter.Run();
 
-            Shown += (_, __) => FormShown(myContextRouter, otherContextRouter);
+            Shown += (_, __) => myContextRouter.Publish<Startup>(otherContextRouter);
             canvasController = InitializeFlowSharp();
         }
 
@@ -62,21 +62,35 @@ namespace Designer
 				//canvas.Invalidate();
         */
 
-        protected void FormShown(ContextRouter myContextRouter, ContextRouter otherContextRouter)
+        [ContextComputing.PublishesAttribute(
+            @"ListenerTextBox,
+            LogTextBox,
+            ListenerListBox,
+            ContextListBox,
+            ParametersListBox,
+            PublishesListBox,
+            ActiveListenersListBox,
+            ContextTypeMapsListBox,
+            OtherContextRouter,
+            CanvasController,
+            StartingListener"
+            )]
+        protected void Execute(ContextRouter router, ContextItem item, ContextRouter otherContextRouter)
         {
             // Publish after the form is shown, otherwise the InvokeRequired will return false even though
             // we're handling the publish on a separate thread.
-            myContextRouter.Publish<ListenerTextBox>(tbListener, isStatic: true);
-            myContextRouter.Publish<LogTextBox>(tbLog, isStatic: true);
-            myContextRouter.Publish<ListenerListBox>(lbListeners, isStatic: true);
-            myContextRouter.Publish<ContextListBox>(lbContexts, isStatic: true);
-            myContextRouter.Publish<ParametersListBox>(lbParameters, isStatic: true);
-            myContextRouter.Publish<PublishesListBox>(lbPublishes, isStatic: true);
-            myContextRouter.Publish<ActiveListenersListBox>(lbActiveListeners, isStatic: true);
-            myContextRouter.Publish<ContextTypeMapsListBox>(lbContextTypeMaps, isStatic: true);
-            myContextRouter.Publish<OtherContextRouter>(otherContextRouter, isStatic: true);
-            myContextRouter.Publish<CanvasController>(canvasController, isStatic: true);
-            myContextRouter.Publish<StartingListener>("HelloWorld");
+            router.Publish<ListenerTextBox>(tbListener, isStatic: true);
+            router.Publish<LogTextBox>(tbLog, isStatic: true);
+            router.Publish<ListenerListBox>(lbListeners, isStatic: true);
+            router.Publish<ContextListBox>(lbContexts, isStatic: true);
+            router.Publish<ParametersListBox>(lbParameters, isStatic: true);
+            router.Publish<PublishesListBox>(lbPublishes, isStatic: true);
+            router.Publish<ActiveListenersListBox>(lbActiveListeners, isStatic: true);
+            router.Publish<ContextTypeMapsListBox>(lbContextTypeMaps, isStatic: true);
+            router.Publish<OtherContextRouter>(otherContextRouter, isStatic: true);
+            router.Publish<CanvasController>(canvasController, isStatic: true);
+            // router.Publish<StartingListener>("HelloWorld");
+            router.Publish<StartingListener>(nameof(CPDesigner));
         }
 
         protected ContextRouter InitializeMyContextRouter()
@@ -85,6 +99,7 @@ namespace Designer
 
             ContextRouter cr = new ContextRouter();
             cr
+                .Register<Startup>(this)
                 .TriggerOn<ShowListeners, OtherContextRouter, ListenerListBox>()
                 .TriggerOn<ShowContexts, OtherContextRouter, ContextListBox>()
                 .TriggerOn<ShowTypeMaps, OtherContextRouter,  ContextTypeMapsListBox>()
@@ -116,3 +131,4 @@ namespace Designer
         }
     }
 }
+

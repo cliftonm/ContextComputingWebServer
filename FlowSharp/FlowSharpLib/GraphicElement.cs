@@ -47,6 +47,7 @@ namespace FlowSharpLib
         // public bool HideConnectionPoints { get; set; }
         public bool ShowAnchors { get; set; }
         public Canvas Canvas { get { return canvas; } }
+        public SizeF TextSize { get { return canvas.AntiAliasGraphics.MeasureString(Text, TextFont); } }
 
         // This is probably a ridiculous optimization -- should just grow pen width + connection point size / 2
         // public virtual Rectangle UpdateRectangle { get { return DisplayRectangle.Grow(BorderPen.Width + ((ShowConnectionPoints || HideConnectionPoints) ? 3 : 0)); } }
@@ -772,7 +773,7 @@ namespace FlowSharpLib
         {
 			SizeF size = gr.MeasureString(text, textFont);
 			Brush brush = new SolidBrush(textColor);
-            Point textpos;
+            // Point textpos;
             Font font = textFont;
             bool disposeFont = false;
 

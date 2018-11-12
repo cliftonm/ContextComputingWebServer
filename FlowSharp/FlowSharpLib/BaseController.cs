@@ -874,19 +874,19 @@ namespace FlowSharpLib
             int elIdx = elements.IndexOf(el);
 			Rectangle rectExpanded = el.UpdateRectangle.Grow(dx, dy);
 
-			// Cool thing here is that if the element has no intersections, this list still returns that element because it intersects with itself!
-			// Optimization here is that we only collect shapes that intersect and are above (on top of) the current shape. 
-			// This optimization works really well except that it has a bug, that shapes above connectors in the z-order do not
-			// redraw the attached connector.
-			elements.Where(e => !intersections.Contains(e) &&		// exclude elements we've already flagged as intersecting.
-			(elements.IndexOf(e) <= elIdx ||                        // elements higher in the z-order must be redrawn because the current element is underneath.
-			el.Connections.Any(c=>c.ToElement==e)) &&				// or the element is connected the shape being moved.
-			e.UpdateRectangle.IntersectsWith(rectExpanded)).		// and they intersect.
-			ForEach((e) =>
-			{
+            // Cool thing here is that if the element has no intersections, this list still returns that element because it intersects with itself!
+            // Optimization here is that we only collect shapes that intersect and are above (on top of) the current shape. 
+            // This optimization works really well except that it has a bug, that shapes above connectors in the z-order do not
+            // redraw the attached connector.
+            elements.Where(e => !intersections.Contains(e) &&       // exclude elements we've already flagged as intersecting.
+            (elements.IndexOf(e) <= elIdx ||                        // elements higher in the z-order must be redrawn because the current element is underneath.
+            el.Connections.Any(c => c.ToElement == e)) &&               // or the element is connected the shape being moved.
+            e.UpdateRectangle.IntersectsWith(rectExpanded)).        // and they intersect.
+            ForEach((e) =>
+            {
                 intersections.Add(e);
                 RecursiveFindAllIntersections(intersections, e);
-			});
+            });
 		}
 
 		protected IEnumerable<GraphicElement> EraseOurselvesAndIntersectionsTopToBottom(GraphicElement el, int dx = 0, int dy = 0)
