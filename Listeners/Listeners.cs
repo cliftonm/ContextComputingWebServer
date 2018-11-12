@@ -16,6 +16,7 @@ namespace Listeners
         {
             ContextRouter contextRouter = new ContextRouter();
             InitializeContext(contextRouter);
+            AutoRegistration.AutoRegister<Listener>(contextRouter);
 
             return contextRouter;
         }
@@ -28,31 +29,61 @@ namespace Listeners
 
             contextRouter
                .AssociateType<HttpContext, GetPage>()
-                .Register<HelloWorld, GetPage>()
+                // .Register<HelloWorld, GetPage>()
                 .Register<GetPeople>()
-                .Register<GetPets>()
+                .Register<GetPets>();
                 // TODO: param order dependency
-                .TriggerOn<Render, People, Pets, GetPage>()
-                .TriggerOn<Count, People, GetPage>()
-                .TriggerOn<Count, Pets, GetPage>();
+                // .TriggerOn<Render, People, Pets, GetPage>()
+                // .TriggerOn<Count, People, GetPage>()
+                // .TriggerOn<Count, Pets, GetPage>();
+
+            AutoRegistration.AutoRegister<Listener>(contextRouter);
         }
     }
 
-    public class HelloWorld : IContextComputingListener
+    public class Listener : IContextComputingListener
     {
-        [ContextComputing.PublishesAttribute("Wait1, GetPeople, GetPets")]
-        public void Execute(ContextRouter router, ContextItem item, HttpContext httpContext)
+        [Listener]
+        [Publishes("Wait1, GetPeople, GetPets")]
+        public void HelloWorld(ContextRouter router, ContextItem item, [Context(nameof(GetPage))] HttpContext httpContext)
         {
             httpContext.Response.Write(String.Format("<p>{0} Hello World!</p>", DateTime.Now.ToString("ss.fff")));
             router.Publish<Wait1>(httpContext, item.AsyncContext);
             router.Publish<GetPeople>(null, item.AsyncContext);
             router.Publish<GetPets>(null, item.AsyncContext);
         }
+
+        [Listener]
+        public void Render(ContextRouter router, ContextItem item, People people, Pets pets, [Context(nameof(GetPage))] HttpContext httpContext)
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.Append("<table style='border: 1px solid black; display:inline-table;'>");
+            people.GetPeople().ForEach(p => sb.Append("<tr><td>" + p + "</td></tr>"));
+            sb.Append("</table>");
+            sb.Append("&nbsp;");
+            sb.Append("<table style='border: 1px solid black; display:inline-table;'>");
+            pets.GetPets().ForEach(p => sb.Append("<tr><td>" + p + "</td></tr>"));
+            sb.Append("</table>");
+
+            httpContext.Response.Write(sb.ToString());
+        }
+
+        [Listener]
+        public void Count(ContextRouter router, ContextItem item, People people, [Context(nameof(GetPage))] HttpContext httpContext)
+        {
+            httpContext.Response.Write(String.Format("<p>There are {0} people.</p>", people.GetPeople().Count));
+        }
+
+        [Listener]
+        public void Count(ContextRouter router, ContextItem item, Pets pets, [Context(nameof(GetPage))] HttpContext httpContext)
+        {
+            httpContext.Response.Write(String.Format("<p>There are {0} pet types.</p>", pets.GetPets().Count));
+        }
     }
 
     public class Wait1 : IContextComputingListener
     {
-        [ContextComputing.PublishesAttribute("Wait2")]
+        [Publishes("Wait2")]
         public void Execute(ContextRouter router, ContextItem item, HttpContext httpContext)
         {
             Thread.Sleep(500);
@@ -81,9 +112,9 @@ namespace Listeners
     public class People
     {
         private List<string> people = new List<string>()
-    {
-        "Tom", "Dick", "Harry"
-    };
+        {
+            "Tom", "Dick", "Harry"
+        };
 
         public List<string> GetPeople()
         {
@@ -94,9 +125,9 @@ namespace Listeners
     public class Pets
     {
         private List<string> pets = new List<string>()
-    {
-        "Cat", "Dog", "Tarantula", "Snake", "Fish", "Bird"
-    };
+        {
+            "Cat", "Dog", "Tarantula", "Snake", "Fish", "Bird"
+        };
 
         public List<string> GetPets()
         {
@@ -106,7 +137,7 @@ namespace Listeners
 
     public class GetPeople : IContextComputingListener
     {
-        [ContextComputing.PublishesAttribute("People")]
+        [Publishes("People")]
         public void Execute(ContextRouter router, ContextItem item)
         {
             // Simulate having queried people:
@@ -119,7 +150,7 @@ namespace Listeners
 
     public class GetPets : IContextComputingListener
     {
-        [ContextComputing.PublishesAttribute("Pets")]
+        [Publishes("Pets")]
         public void Execute(ContextRouter router, ContextItem item)
         {
             // Simulate having queried people:
@@ -127,36 +158,6 @@ namespace Listeners
             // Simulate the query having taken some time.
             Thread.Sleep(750);
             router.Publish<Pets>(pets, item.AsyncContext);
-        }
-    }
-
-    public class Render : IContextComputingListener
-    {
-        public void Execute(ContextRouter router, ContextItem item, People people, Pets pets, HttpContext httpContext)
-        {
-            StringBuilder sb = new StringBuilder();
-            sb.Append("<table style='border: 1px solid black; display:inline-table;'>");
-            people.GetPeople().ForEach(p => sb.Append("<tr><td>" + p + "</td></tr>"));
-            sb.Append("</table>");
-            sb.Append("&nbsp;");
-            sb.Append("<table style='border: 1px solid black; display:inline-table;'>");
-            pets.GetPets().ForEach(p => sb.Append("<tr><td>" + p + "</td></tr>"));
-            sb.Append("</table>");
-
-            httpContext.Response.Write(sb.ToString());
-        }
-    }
-
-    public class Count : IContextComputingListener
-    {
-        public void Execute(ContextRouter router, ContextItem item, People people, HttpContext httpContext)
-        {
-            httpContext.Response.Write(String.Format("<p>There are {0} people.</p>", people.GetPeople().Count));
-        }
-
-        public void Execute(ContextRouter router, ContextItem item, Pets pets, HttpContext httpContext)
-        {
-            httpContext.Response.Write(String.Format("<p>There are {0} pet types.</p>", pets.GetPets().Count));
         }
     }
 }
