@@ -43,6 +43,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Assert.cs" />
+    <Compile Include="AutoRegistration.cs" />
     <Compile Include="ContextExceptionInfo.cs" />
     <Compile Include="ContextItem.cs" />
     <Compile Include="ContextRouter.cs" />

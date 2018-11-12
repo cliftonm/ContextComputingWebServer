@@ -80,6 +80,12 @@ namespace ContextComputing
             return ret.Distinct().ToList();
         }
 
+        public List<string> GetTriggerContexts(Type type, string methodName = null)
+        {
+            return triggers.Single(t => t.ListenerType.Name == type.Name && t.Method?.Name == methodName).Contexts;
+
+        }
+
         public List<(Type type, string context)> GetTypeContexts()
         {
             List<(Type, string)> ret = new List<(Type type, string context)>();
@@ -229,12 +235,12 @@ namespace ContextComputing
             return this;
         }
 
-        public ContextRouter TriggerOn(string[] contexts, Type t)
+        public ContextRouter TriggerOn(string[] contexts, Type t, MethodInfo method = null)
         {
             // Setup placeholder for contexts when they get published for this type.
             lock (triggers)
             {
-                triggers.Add(new Trigger(contexts, t));
+                triggers.Add(new Trigger(contexts, t, method));
             }
 
             return this;
@@ -243,10 +249,16 @@ namespace ContextComputing
         /// <summary>
         /// This type is instantiated on-demand when the data in all the required contexts exists.
         /// </summary>
-        public ContextRouter TriggerOn<T>(params string[] contexts)
+        public ContextRouter TriggerOn<T>(params string[] contexts) where T : IContextComputingListener
         {
             TriggerOn(contexts, typeof(T));
 
+            return this;
+        }
+
+        public ContextRouter TriggerOn<T>(string[] contexts, MethodInfo method) where T : IContextComputingListener
+        {
+            TriggerOn(contexts, typeof(T), method);
             return this;
         }
 
@@ -513,9 +525,10 @@ namespace ContextComputing
 
                 if (data is TriggerData)
                 {
+                    var triggerData = (TriggerData)data;
                     // Put trigger data into param list in the order it's in the list.
                     List<object> parms = new List<object>() { this, contextItem };
-                    parms.AddRange(((TriggerData)data).Data);
+                    parms.AddRange(triggerData.Data);
                     Assert.That(!parms.Any(p => p == null), "One or more parameters is null.  Null parameters is not permitted.\r\n" + String.Join("\r\n", parms.Select(p => p?.GetType()?.Name ?? "???")));
                     bool sendingLog = parms.Any(p => p?.GetType() == typeof(LogInfo));
 
@@ -527,6 +540,8 @@ namespace ContextComputing
 
                         return equal;
                     });
+
+                    mi = mi ?? triggerData.Method;
 
                     Assert.That(mi != null, "No suitable method in " + listener.GetType().Name + " found for parameters:\r\n " + String.Join("\r\n", parms.Select(p => p?.GetType()?.Name ?? "???")));
 

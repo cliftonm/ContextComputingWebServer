@@ -27,35 +27,24 @@ namespace Designer
     public class ActiveListenersListBox { }
     public class Startup { }
 
-    public class Logger : IContextComputingListener
-    {
-        [Listener]
-        [Publishes(new string[] { "A", "B" })]
-        public void LogMe(ContextRouter router, ContextItem item, 
-            [Context(nameof(LogTextBox))]   TextBox textBox, 
-            [Context(nameof(LogInfo))]      LogInfo info)
-        {
-        }
-    }
-
-    public class LogEntry : IContextComputingListener
+    public class Listener : IContextComputingListener
     {
         const string CRLF = "\r\n";
 
-        public void Execute(ContextRouter router, ContextItem item, TextBox textBox, LogInfo info)
+        [Listener]
+        public void Log(ContextRouter router, ContextItem item, [Context(nameof(LogTextBox))] TextBox textBox, LogInfo info)
         {
             textBox.BeginInvoke(() =>
             {
                 textBox.AppendText(info.Message + CRLF);
             });
         }
-    }
 
-    public class ShowListeners : IContextComputingListener
-    {
-        public void Execute(ContextRouter router, ContextItem item, ContextRouter otherRouter, ListBox listBox)
+        [Listener]
+        public void ShowListeners(ContextRouter router, ContextItem item, 
+            [Context(nameof(OtherContextRouter))]   ContextRouter otherRouter, 
+            [Context(nameof(ListenerListBox))]      ListBox listBox)
         {
-            // var listeners = Model.GetListeners();
             var listeners = otherRouter.GetAllListeners();
 
             listBox.BeginInvoke(() =>
@@ -63,50 +52,37 @@ namespace Designer
                 listBox.Items.AddRange(listeners.OrderBy(l => l.Name).Select(l => l.Name).ToArray());
             });
         }
-    }
 
-    public class ShowContexts : IContextComputingListener
-    {
-        public  void Execute(ContextRouter router, ContextItem item, ContextRouter otherRouter, ListBox listBox)
+        [Listener]
+        public void ShowContexts(ContextRouter router, ContextItem item,
+            [Context(nameof(OtherContextRouter))]   ContextRouter otherRouter, 
+            [Context(nameof(ContextListBox))]       ListBox listBox)
         {
             listBox.BeginInvoke(() => listBox.Items.AddRange(otherRouter.GetAllContexts().OrderBy(c => c).ToArray()));
         }
-    }
 
-    public class ShowTypeMaps : IContextComputingListener
-    {
-        public void Execute(ContextRouter router, ContextItem item, ContextRouter otherRouter, ListBox listBox)
+        [Listener]
+        public void ShowTypeMaps(ContextRouter router, ContextItem item,
+            [Context(nameof(OtherContextRouter))]       ContextRouter otherRouter, 
+            [Context(nameof(ContextTypeMapsListBox))]   ListBox listBox)
         {
             listBox.BeginInvoke(() => listBox.Items.AddRange(otherRouter.GetTypeContexts().Select(tc => tc.type.Name + " => " + tc.context).ToArray()));
         }
-    }
 
-    /*
-    public class ListenerSelected : IContextComputingListener
-    {
-        public void Execute(ContextRouter router, ContextItem item, ListBox listBoxListeners, ListBox listBoxParameters, ListBox listBoxPublishes, TextBox textBox, string name)
-        {
-            listBoxListeners.BeginInvoke(() =>
-            {
-                router.Publish(nameof(ShowListenerInfo), (textBox, listBoxParameters, listBoxPublishes, name));
-            });
-        }
-    }
-    */
-
-    public class ShowListenerSelection : IContextComputingListener
-    {
-        public void Execute(ContextRouter router, ContextItem item, TextBox textBox, string name)
+        [Listener]
+        public void ShowListenerSelection(ContextRouter router, ContextItem item, 
+            [Context(nameof(ListenerTextBox))]      TextBox textBox, 
+            [Context(nameof(SelectedListener))]     string name)
         {
             textBox.BeginInvoke(() => textBox.Text = name);
         }
-    }
 
-    public class ShowListenerParameters : IContextComputingListener
-    {
-        public void Execute(ContextRouter router, ContextItem item, ContextRouter otherRouter, ListBox listBox, string name)
+        [Listener]
+        public void ShowListenerParameters(ContextRouter router, ContextItem item,
+            [Context(nameof(OtherContextRouter))]   ContextRouter otherRouter, 
+            [Context(nameof(ParametersListBox))]    ListBox listBox,
+            [Context(nameof(SelectedListener))]     string name)
         {
-            // var listeners = Model.GetListeners();
             var listeners = otherRouter.GetAllListeners();
             var executors = Model.GetParameters(listeners, name);
 
@@ -116,11 +92,12 @@ namespace Designer
                 listBox.Items.AddRange(executors.ToArray());
             });
         }
-    }
 
-    public class ShowPublishedContext : IContextComputingListener
-    {
-        public void Execute(ContextRouter router, ContextItem item, ContextRouter otherRouter, ListBox listBox, string name)
+        [Listener]
+        public void ShowPublishedContext(ContextRouter router, ContextItem item,
+            [Context(nameof(OtherContextRouter))]   ContextRouter otherRouter,
+            [Context(nameof(PublishesListBox))]     ListBox listBox,
+            [Context(nameof(SelectedListener))]     string name)
         {
             // var listener = Model.GetListeners().Single(l => l.Name == name);
             var listener = otherRouter.GetAllListeners().Single(l => l.Name == name);
@@ -131,11 +108,12 @@ namespace Designer
                 listBox.Items.AddRange(Model.GetContextsPublished(listener).ToArray());
             });
         }
-    }
 
-    public class ShowActiveListeners : IContextComputingListener
-    {
-        public void Execute(ContextRouter router, ContextItem item, ContextRouter otherRouter, ListBox listBox, string contextName)
+        [Listener]
+        public void ShowActiveListeners(ContextRouter router, ContextItem item,
+            [Context(nameof(OtherContextRouter))]         ContextRouter otherRouter,
+            [Context(nameof(ActiveListenersListBox))]     ListBox listBox,
+            [Context(nameof(SelectedContext))]            string contextName)
         {
             var listenerTypes = otherRouter.GetListeners(contextName);
 

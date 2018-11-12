@@ -23,8 +23,8 @@ namespace Designer
 
             AppDomain.CurrentDomain.ReflectionOnlyAssemblyResolve += ReflectionOnlyAssemblyResolve;
             ContextRouter myContextRouter = InitializeMyContextRouter();
-            ContextRouter otherContextRouter = myContextRouter;
-            // ContextRouter otherContextRouter = Listeners.Listeners.InitializeContext();
+            // ContextRouter otherContextRouter = myContextRouter;
+            ContextRouter otherContextRouter = Listeners.Listeners.InitializeContext();
             myContextRouter.OnException += (_, cei) => MessageBox.Show(cei.Exception.ToString(), "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
 
             WireUpEvents(myContextRouter);
@@ -89,8 +89,8 @@ namespace Designer
             router.Publish<ContextTypeMapsListBox>(lbContextTypeMaps, isStatic: true);
             router.Publish<OtherContextRouter>(otherContextRouter, isStatic: true);
             router.Publish<CanvasController>(canvasController, isStatic: true);
-            // router.Publish<StartingListener>("HelloWorld");
-            router.Publish<StartingListener>(nameof(CPDesigner));
+            router.Publish<StartingListener>("HelloWorld");
+            // router.Publish<StartingListener>(nameof(CPDesigner));
         }
 
         protected ContextRouter InitializeMyContextRouter()
@@ -100,16 +100,10 @@ namespace Designer
             ContextRouter cr = new ContextRouter();
             cr
                 .Register<Startup>(this)
-                .TriggerOn<ShowListeners, OtherContextRouter, ListenerListBox>()
-                .TriggerOn<ShowContexts, OtherContextRouter, ContextListBox>()
-                .TriggerOn<ShowTypeMaps, OtherContextRouter,  ContextTypeMapsListBox>()
                 .TriggerOn<DrawContext, OtherContextRouter, CanvasController, StartingListener>()
-                .TriggerOn<ShowListenerSelection, ListenerTextBox, SelectedListener>()
-                .TriggerOn<ShowPublishedContext, OtherContextRouter, PublishesListBox, SelectedListener>()
-                .TriggerOn<ShowListenerParameters, OtherContextRouter, ParametersListBox, SelectedListener>()
-                .TriggerOn<ShowActiveListeners, OtherContextRouter, ActiveListenersListBox, SelectedContext>()
-                .TriggerOn<LogEntry, LogTextBox, LogInfo>()
                 ;
+
+            AutoRegistration.AutoRegister<Listener>(cr);
 
             return cr;
         }

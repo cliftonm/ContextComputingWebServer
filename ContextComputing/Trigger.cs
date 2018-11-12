@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 
 using Clifton.Core.ExtensionMethods;
 
@@ -10,6 +11,7 @@ namespace ContextComputing
     internal class Trigger
     {
         public List<string> Contexts { get { return masterPendingContexts.Select(mpc => mpc.ContextName).ToList(); } }
+        public MethodInfo Method { get; protected set; }
 
         /// <summary>
         /// Triggers that receive just static data are effectively one-time triggers.  Once all the static data has
@@ -26,9 +28,10 @@ namespace ContextComputing
 
         public Type ListenerType { get; protected set; }
 
-        public Trigger(string[] contexts, Type listenerType)
+        public Trigger(string[] contexts, Type listenerType, MethodInfo method)
         {
             ListenerType = listenerType;
+            Method = method;
             contexts.ForEach(c => masterPendingContexts.Add(new PendingContext(c)));
         }
 
@@ -82,7 +85,7 @@ namespace ContextComputing
             // the associated data.
             lock (pendingContexts)
             {
-                data = new TriggerData(pendingContexts.Select(c => c.Data).ToList());
+                data = new TriggerData(pendingContexts.Select(c => c.Data).ToList(), Method);
                 pendingContexts.ForEach(c => c.Clear());
                 neverPostAgain = pendingContexts.All(pc => pc.IsStatic);
             }
