@@ -29,7 +29,7 @@ namespace ContextComputing
 
         private List<Trigger> triggers = new List<Trigger>();
 
-        private Object nullContext = new object();
+        private AsyncContext nullContext = new AsyncContext();
 
         public List<string> GetAllContexts()
         {
@@ -235,12 +235,12 @@ namespace ContextComputing
             return this;
         }
 
-        public ContextRouter TriggerOn(string[] contexts, Type t, MethodInfo method = null)
+        public ContextRouter TriggerOn(string[] contexts, Type t, MethodInfo method = null, IEnumerable<string> dependentContexts = null)
         {
             // Setup placeholder for contexts when they get published for this type.
             lock (triggers)
             {
-                triggers.Add(new Trigger(contexts, t, method));
+                triggers.Add(new Trigger(contexts, t, method, dependentContexts));
             }
 
             return this;
@@ -256,9 +256,9 @@ namespace ContextComputing
             return this;
         }
 
-        public ContextRouter TriggerOn<T>(string[] contexts, MethodInfo method) where T : IContextComputingListener
+        public ContextRouter TriggerOn<T>(string[] contexts, MethodInfo method, IEnumerable<string> dependentContexts = null) where T : IContextComputingListener
         {
-            TriggerOn(contexts, typeof(T), method);
+            TriggerOn(contexts, typeof(T), method, dependentContexts);
             return this;
         }
 
@@ -332,7 +332,7 @@ namespace ContextComputing
             });
         }
 
-        public void Publish(object data, object asyncContext = null, bool isStatic = false)
+        public void Publish(object data, AsyncContext asyncContext = null, bool isStatic = false)
         {
             asyncContext = asyncContext ?? nullContext;
             List<string> clonedContexts;
@@ -348,13 +348,19 @@ namespace ContextComputing
             }
         }
 
-        public void Publish<Context>(object data, object asyncContext = null, bool isStatic = false)
+        public void Publish<Context>(AsyncContext asyncContext = null, bool isStatic = false)
+        {
+            string context = typeof(Context).Name;
+            Publish(context, null, asyncContext, isStatic);
+        }
+
+        public void Publish<Context>(object data, AsyncContext asyncContext = null, bool isStatic = false)
         {
             string context = typeof(Context).Name;
             Publish(context, data, asyncContext, isStatic);
         }
 
-        public void Publish(string context, object data, object asyncContext = null, bool isStatic = false)
+        public void Publish(string context, object data, AsyncContext asyncContext = null, bool isStatic = false)
         {
             InternalPublish<LogInfo>(new LogInfo("Publishing " + context), null, false);
             InternalPublish(context, data, asyncContext, isStatic);
@@ -363,13 +369,13 @@ namespace ContextComputing
         /// <summary>
         /// Prevents recursive publish.
         /// </summary>
-        private void InternalPublish<Context>(object data, object asyncContext, bool isStatic)
+        private void InternalPublish<Context>(object data, AsyncContext asyncContext, bool isStatic)
         {
             string context = typeof(Context).Name;
             InternalPublish(context, data, asyncContext, isStatic);
         }
 
-        private void InternalPublish(string context, object data, object asyncContext, bool isStatic)
+        private void InternalPublish(string context, object data, AsyncContext asyncContext, bool isStatic)
         {
             asyncContext = asyncContext ?? nullContext;
             PublishDataToInstances(context, data, asyncContext);
@@ -382,7 +388,7 @@ namespace ContextComputing
         /// Waits until all processes have completed.  If a completed process adds another process that we
         /// must wait for, then we wait again.
         /// </summary>
-        public void WaitForCompletion(object asyncContext)
+        public void WaitForCompletion(AsyncContext asyncContext)
         {
             if (contextThreads.ContainsKey(asyncContext))
             {
@@ -398,7 +404,7 @@ namespace ContextComputing
             }
         }
 
-        public void Cleanup(object asyncContext)
+        public void Cleanup(AsyncContext asyncContext)
         {
             if (contextThreads.ContainsKey(asyncContext))
             {
@@ -410,7 +416,7 @@ namespace ContextComputing
             triggers.ForEach(t => t.ClearPendingContexts());
         }
 
-        private void PostContextsToTriggers(string context, object data, object asyncContext, bool isStatic)
+        private void PostContextsToTriggers(string context, object data, AsyncContext asyncContext, bool isStatic)
         {
             lock (triggers)
             {
@@ -418,7 +424,7 @@ namespace ContextComputing
             }
         }
 
-        private void CheckForTriggers(string context, object asyncContext)
+        private void CheckForTriggers(string context, AsyncContext asyncContext)
         {
             // We lock the loop that enqueues triggers because we can have a race condition
             // where a thread publishes context-data that reruns this loop, causing multiple
@@ -445,7 +451,7 @@ namespace ContextComputing
             }
         }
 
-        private void PublishDataToInstances(string context, object data, object asyncContext)
+        private void PublishDataToInstances(string context, object data, AsyncContext asyncContext)
         {
             List<(IContextComputingListener instance, Guid id)> listeners;
             List<(IContextComputingListener instance, Guid id)> clonedListeners;
@@ -474,7 +480,7 @@ namespace ContextComputing
             }
         }
 
-        private void PublishDataToOnDemandListeners(string context, object data, object asyncContext)
+        private void PublishDataToOnDemandListeners(string context, object data, AsyncContext asyncContext)
         {
             List<Type> listenerTypes;
             List<Type> clonedListenerTypes;
@@ -580,7 +586,7 @@ namespace ContextComputing
             waitHandle.Set();
         }
 
-        private void AddContextThreadWaiter(object asyncContext, WaitHandle waiter)
+        private void AddContextThreadWaiter(AsyncContext asyncContext, WaitHandle waiter)
         {
             List<WaitHandle> waiters;
 

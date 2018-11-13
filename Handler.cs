@@ -87,7 +87,7 @@ public class Handler : IHttpAsyncHandler
         t.ContinueWith(_ =>
         {
             httpContext.Response.Write(String.Format("<p>{0} Publishing HttpContext...</p>", DateTime.Now.ToString("ss.fff")));
-            object asyncContext = new object();
+            AsyncContext asyncContext = new AsyncContext();
             contextRouter.Publish(httpContext, asyncContext);
             contextRouter.WaitForCompletion(asyncContext);
             contextRouter.Cleanup(asyncContext);

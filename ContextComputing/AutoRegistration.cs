@@ -18,9 +18,10 @@ namespace ContextComputing
 
             listeners.ForEach(listener =>
             {
-                var publishes = GetPublishes(listener);
+                // var publishes = GetPublishes(listener);
                 var contexts = GetContexts(listener);
-                router.TriggerOn<T>(contexts.ToArray(), listener);
+                var dependentContexts = GetDependentContexts(listener);
+                router.TriggerOn<T>(contexts.ToArray(), listener, dependentContexts);
             });
         }
 
@@ -50,9 +51,14 @@ namespace ContextComputing
             Assert.That(parms[1].ParameterType == typeof(ContextItem), "ContextItem must be the second parameter type.");
 
             // Use the specified context name, or the type name of the parameter as the context.
-            var ret =  parms.Skip(2).Select(p => p.GetCustomAttribute<ContextAttribute>()?.ContextName ?? p.ParameterType.Name);
+            var ret = parms.Skip(2).Select(p => p.GetCustomAttribute<ContextAttribute>()?.ContextName ?? p.ParameterType.Name);
 
             return ret;
+        }
+
+        private static IEnumerable<string> GetDependentContexts(MethodInfo listener)
+        {
+            return listener.GetCustomAttribute<DependentContextsAttribute>()?.Contexts ?? new List<string>();
         }
     }
 }

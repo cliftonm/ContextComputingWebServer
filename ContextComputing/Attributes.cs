@@ -38,4 +38,27 @@ namespace ContextComputing
             Contexts = new List<string>(contexts);
         }
     }
+
+    /// <summary>
+    /// Dependent contexts are contexts that do not carry any data but are published to trigger a listener 
+    /// dependent on the specified contexts (all must be present.)
+    /// </summary>
+    [AttributeUsage(AttributeTargets.Method)]
+    public class DependentContextsAttribute : Attribute
+    {
+        public List<string> Contexts { get; protected set; }
+
+        /// <summary>
+        /// Comma-delimited contexts.
+        /// </summary>
+        public DependentContextsAttribute(string contexts)
+        {
+            Contexts = new List<string>(contexts.Split(',').Select(c => c.Trim()));
+        }
+
+        public DependentContextsAttribute(string[] contexts)
+        {
+            Contexts = new List<string>(contexts);
+        }
+    }
 }

@@ -9,6 +9,10 @@ using ContextComputing;
 namespace Listeners
 {
     public class GetPage { }
+    public class Wait1 { }
+    public class Wait2 { }
+    public class GetPeople { }
+    public class GetPets { }
 
     public static class Listeners
     {
@@ -23,15 +27,15 @@ namespace Listeners
 
         public static void InitializeContext(ContextRouter contextRouter)
         {
-            contextRouter.Register<Wait1>()
-                .Register<Wait2>()
-                .Register<Wait2Again, Wait2>();
+            //contextRouter
+            //    .Register<Wait2>()
+            //    .Register<Wait2Again, Wait2>();
 
             contextRouter
-               .AssociateType<HttpContext, GetPage>()
+               .AssociateType<HttpContext, GetPage>();
                 // .Register<HelloWorld, GetPage>()
-                .Register<GetPeople>()
-                .Register<GetPets>();
+                // .Register<GetPeople>()
+                // .Register<GetPets>();
                 // TODO: param order dependency
                 // .TriggerOn<Render, People, Pets, GetPage>()
                 // .TriggerOn<Count, People, GetPage>()
@@ -44,13 +48,13 @@ namespace Listeners
     public class Listener : IContextComputingListener
     {
         [Listener]
-        [Publishes("Wait1, GetPeople, GetPets")]
+        [Publishes(new string[] { nameof(Wait1), nameof(GetPeople), nameof(GetPets) })]
         public void HelloWorld(ContextRouter router, ContextItem item, [Context(nameof(GetPage))] HttpContext httpContext)
         {
             httpContext.Response.Write(String.Format("<p>{0} Hello World!</p>", DateTime.Now.ToString("ss.fff")));
-            router.Publish<Wait1>(httpContext, item.AsyncContext);
-            router.Publish<GetPeople>(null, item.AsyncContext);
-            router.Publish<GetPets>(null, item.AsyncContext);
+            router.Publish<Wait1>(item.AsyncContext);
+            router.Publish<GetPeople>(item.AsyncContext);
+            router.Publish<GetPets>(item.AsyncContext);
         }
 
         [Listener]
@@ -79,33 +83,54 @@ namespace Listeners
         {
             httpContext.Response.Write(String.Format("<p>There are {0} pet types.</p>", pets.GetPets().Count));
         }
-    }
 
-    public class Wait1 : IContextComputingListener
-    {
-        [Publishes("Wait2")]
-        public void Execute(ContextRouter router, ContextItem item, HttpContext httpContext)
+        [Listener]
+        [Publishes(nameof(Wait2))]
+        [DependentContexts(nameof(Wait1))]
+        public void OnWait1(ContextRouter router, ContextItem item, [Context(nameof(GetPage))] HttpContext httpContext)
         {
             Thread.Sleep(500);
             httpContext.Response.Write(String.Format("<p>{0} Wait 1</p>", DateTime.Now.ToString("ss.fff")));
-            router.Publish<Wait2>(httpContext, item.AsyncContext);
+            router.Publish<Wait2>(item.AsyncContext);
         }
-    }
 
-    public class Wait2 : IContextComputingListener
-    {
-        public void Execute(ContextRouter router, ContextItem item, HttpContext httpContext)
+        [Listener]
+        [DependentContexts(nameof(Wait2))]
+        public void OnWait2(ContextRouter router, ContextItem item, [Context(nameof(GetPage))] HttpContext httpContext)
         {
             Thread.Sleep(500);
             httpContext.Response.Write(String.Format("<p>{0} Wait 2</p>", DateTime.Now.ToString("ss.fff")));
         }
-    }
 
-    public class Wait2Again : IContextComputingListener
-    {
-        public void Execute(ContextRouter router, ContextItem item, HttpContext httpContext)
+        [Listener]
+        [DependentContexts(nameof(Wait2))]
+        public void OnWait2Again(ContextRouter router, ContextItem item, [Context(nameof(GetPage))] HttpContext httpContext)
         {
             httpContext.Response.Write(String.Format("<p>{0} Wait 2 again</p>", DateTime.Now.ToString("ss.fff")));
+        }
+
+        [Listener]
+        [Publishes("People")]
+        [DependentContexts(nameof(GetPeople))]
+        public void OnGetPeople(ContextRouter router, ContextItem item)
+        {
+            // Simulate having queried people:
+            var people = new People();
+            // Simulate the query having taken some time.
+            Thread.Sleep(250);
+            router.Publish<People>(people, item.AsyncContext);
+        }
+
+        [Listener]
+        [Publishes("Pets")]
+        [DependentContexts(nameof(GetPets))]
+        public void OnGetPets(ContextRouter router, ContextItem item)
+        {
+            // Simulate having queried people:
+            var pets = new Pets();
+            // Simulate the query having taken some time.
+            Thread.Sleep(750);
+            router.Publish<Pets>(pets, item.AsyncContext);
         }
     }
 
@@ -132,32 +157,6 @@ namespace Listeners
         public List<string> GetPets()
         {
             return pets;
-        }
-    }
-
-    public class GetPeople : IContextComputingListener
-    {
-        [Publishes("People")]
-        public void Execute(ContextRouter router, ContextItem item)
-        {
-            // Simulate having queried people:
-            var people = new People();
-            // Simulate the query having taken some time.
-            Thread.Sleep(250);
-            router.Publish<People>(people, item.AsyncContext);
-        }
-    }
-
-    public class GetPets : IContextComputingListener
-    {
-        [Publishes("Pets")]
-        public void Execute(ContextRouter router, ContextItem item)
-        {
-            // Simulate having queried people:
-            var pets = new Pets();
-            // Simulate the query having taken some time.
-            Thread.Sleep(750);
-            router.Publish<Pets>(pets, item.AsyncContext);
         }
     }
 }
