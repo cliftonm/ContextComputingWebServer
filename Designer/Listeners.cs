@@ -49,7 +49,7 @@ namespace Designer
 
             listBox.BeginInvoke(() =>
             {
-                listBox.Items.AddRange(listeners.OrderBy(l => l.Name).Select(l => l.Name).ToArray());
+                listBox.Items.AddRange(listeners.Select(l => l.Name).OrderBy(n => n).ToArray());
             });
         }
 
@@ -83,13 +83,12 @@ namespace Designer
             [Context(nameof(ParametersListBox))]    ListBox listBox,
             [Context(nameof(SelectedListener))]     string name)
         {
-            var listeners = otherRouter.GetAllListeners();
-            var executors = Model.GetParameters(listeners, name);
+            var listener = otherRouter.GetAllListeners().Single(l=>l.Name == name);
 
             listBox.BeginInvoke(() =>
             {
                 listBox.Items.Clear();
-                listBox.Items.AddRange(executors.ToArray());
+                listBox.Items.AddRange(listener.GetParameters().ToArray());
             });
         }
 
@@ -105,7 +104,7 @@ namespace Designer
             listBox.BeginInvoke(() =>
             {
                 listBox.Items.Clear();
-                listBox.Items.AddRange(Model.GetContextsPublished(listener).ToArray());
+                listBox.Items.AddRange(listener.GetContextsPublished().ToArray());
             });
         }
 
@@ -142,7 +141,7 @@ namespace Designer
         public void Execute(ContextRouter router, ContextItem item, ContextRouter otherRouter, CanvasController canvasController, string startingListenerName)
         {
             Box box;
-            List<((int x, int y) p, Type type, Direction dir)> placedListeners = new List<((int, int), Type, Direction)>();
+            List<((int x, int y) p, CCListener listener, Direction dir)> placedListeners = new List<((int, int), CCListener, Direction)>();
             List<((int x, int y) p, GraphicElement el)> occupiedCells = new List<((int x, int y), GraphicElement)>();
             // listeners are of type "ReflectOnlyType" so we use name so we can compare System.RuntimeType with ReflectionOnlyType.
             Dictionary<string, GraphicElement> listenerShapes = new Dictionary<string, GraphicElement>();
@@ -176,7 +175,7 @@ namespace Designer
                 }
             }
 
-            (int, int, Direction) GetFreeCell(Type forType, (int x, int y) srcCell, List<(int x, int y)> requiredCells, (int x, int y, Direction dir)[] tryPoints, IEnumerable<(int x, int y)> occupiedPoints)
+            (int, int, Direction) GetFreeCell(CCListener forListener, (int x, int y) srcCell, List<(int x, int y)> requiredCells, (int x, int y, Direction dir)[] tryPoints, IEnumerable<(int x, int y)> occupiedPoints)
             {
                 (int, int, Direction) p = (0, 0, Direction.None);
                 bool found = false;
@@ -229,15 +228,15 @@ namespace Designer
 
                 if (!found)
                 {
-                    throw new Exception("Unable to find a free cell for type " + forType.Name);
+                    throw new Exception("Unable to find a free cell for type " + forListener.Name);
                 }
 
                 return p;
             }
 
-            void PlaceTargetListeners((int x, int y) sourceCell, Type sourceListener, Direction sourceListenerDir)
+            void PlaceTargetListeners((int x, int y) sourceCell, CCListener sourceListener, Direction sourceListenerDir)
             {
-                var publishes = Model.GetContextsPublished(sourceListener);
+                var publishes = sourceListener.GetContextsPublished();
 
                 publishes.ForEach(context =>
                 {
@@ -245,7 +244,7 @@ namespace Designer
                     
                     // ToList because we're adding to placedListeners as we iterate targetListeners, so we need to capture
                     // this way the list looks now.
-                    var notPlacedListeners = targetListeners.Where(tl => !placedListeners.Any(pl => pl.type == tl)).ToList();
+                    var notPlacedListeners = targetListeners.Where(tl => !placedListeners.Any(pl => pl.listener == tl)).ToList();
 
                     notPlacedListeners.ForEach(tl =>
                     {
@@ -325,7 +324,7 @@ namespace Designer
                     // but instead recurse after all listeners at this level are dropped.
                     notPlacedListeners.ForEach(tl =>
                     {
-                        var placed = placedListeners.Single(pl => pl.type.Name == tl.Name);
+                        var placed = placedListeners.Single(pl => pl.listener == tl);
                         PlaceTargetListeners(placed.p, tl, placed.dir);
                     });
                 });
@@ -373,12 +372,12 @@ namespace Designer
             var listeners = otherRouter.GetAllListeners();
 
             // Start with entry point type.
-            Type t = listeners.Single(l => l.Name == startingListenerName);
+            CCListener listener = listeners.Single(l => l.Name == startingListenerName);
             Direction dir = Direction.Center;
-            placedListeners.Add(((0, 0), t, Direction.Center));
+            placedListeners.Add(((0, 0), listener, Direction.Center));
             box = new Box(canvasController.Canvas);
-            box.Text = t.Name;
-            listenerShapes[t.Name] = box;
+            box.Text = listener.Name;
+            listenerShapes[listener.Name] = box;
             occupiedCells.Add(((0, 0), box));
 
             // TODO: FIX KLUDGE
@@ -389,7 +388,7 @@ namespace Designer
                 occupiedCells.Add(((1, 0), null));
             }
 
-            PlaceTargetListeners((0, 0), t, dir);
+            PlaceTargetListeners((0, 0), listener, dir);
             PlaceShapes();
 
             occupiedCells.ForEach(oc => canvasController.AddElement(oc.el));
@@ -398,7 +397,7 @@ namespace Designer
 
             listeners.ForEach(l =>
             {
-                var publishes = Model.GetContextsPublished(l);
+                var publishes = l.GetContextsPublished();
 
                 if (listenerShapes.TryGetValue(l.Name, out GraphicElement sourceElement))
                 {

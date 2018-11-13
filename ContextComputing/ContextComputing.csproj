@@ -48,6 +48,7 @@
     <Compile Include="ContextItem.cs" />
     <Compile Include="ContextRouter.cs" />
     <Compile Include="Interfaces.cs" />
+    <Compile Include="Listener.cs" />
     <Compile Include="LogInfo.cs" />
     <Compile Include="PendingContext.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

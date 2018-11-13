@@ -43,29 +43,29 @@ namespace ContextComputing
             return ret.Distinct().ToList();
         }
 
-        public List<Type> GetAllListeners()
+        public List<CCListener> GetAllListeners()
         {
-            List<Type> ret = new List<Type>();
-            contextListeners.ForEach(kvp => ret.AddRange(kvp.Value.Select(v => v.listener.GetType())));
-            contextListenerTypes.ForEach(kvp => ret.AddRange(kvp.Value));
-            ret.AddRange(typeContexts.Select(tc => tc.Key));
-            ret.AddRange(triggers.Select(t => t.ListenerType));
+            List<CCListener> ret = new List<CCListener>();
+            contextListeners.ForEach(kvp => ret.AddRange(kvp.Value.Select(v => new TypeListener(v.listener.GetType()))));
+            contextListenerTypes.ForEach(kvp => ret.AddRange(kvp.Value.Select(t => new TypeListener(t))));
+            ret.AddRange(typeContexts.Select(tc => new TypeListener(tc.Key)));
+            ret.AddRange(triggers.Select(t => t.Method != null ? (CCListener)new MethodListener(t.Method) : new TypeListener(t.ListenerType)));
 
-            return ret.Distinct().ToList();
+            return ret.DistinctBy(l => l.Name).ToList();
         }
 
-        public List<Type> GetListeners(string context)
+        public List<CCListener> GetListeners(string context)
         {
-            List<Type> ret = new List<Type>();
+            List<CCListener> ret = new List<CCListener>();
 
-            contextListeners.Where(cl => cl.Key == context).ForEach(cl => ret.AddRange(cl.Value.Select(l => l.listener.GetType())));
-            contextListenerTypes.Where(clt => clt.Key == context).ForEach(clt => ret.AddRange(clt.Value));
+            contextListeners.Where(cl => cl.Key == context).ForEach(cl => ret.AddRange(cl.Value.Select(l => new TypeListener(l.listener.GetType()))));
+            contextListenerTypes.Where(clt => clt.Key == context).ForEach(clt => ret.AddRange(clt.Value.Select(t => new TypeListener(t))));
 
             typeContexts.ForEach(kvp =>
             {
                 if (kvp.Value.Contains(context))
                 {
-                    ret.Add(kvp.Key);
+                    ret.Add(new TypeListener(kvp.Key));
                 }
             });
 
@@ -73,11 +73,11 @@ namespace ContextComputing
             {
                 if (t.Contexts.Contains(context))
                 {
-                    ret.Add(t.ListenerType);
+                    ret.Add(t.Method != null ? (CCListener)new MethodListener(t.Method) : new TypeListener(t.ListenerType));
                 }
             });
 
-            return ret.Distinct().ToList();
+            return ret.DistinctBy(l => l.Name).ToList();
         }
 
         public List<string> GetTriggerContexts(Type type, string methodName = null)

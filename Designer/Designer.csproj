@@ -54,7 +54,6 @@
       <DependentUpon>CPDesigner.cs</DependentUpon>
     </Compile>
     <Compile Include="Listeners.cs" />
-    <Compile Include="Model.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="WinformExtensionMethods.cs" />
