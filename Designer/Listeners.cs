@@ -372,7 +372,11 @@ namespace Designer
             var listeners = otherRouter.GetAllListeners();
 
             // Start with entry point type.
-            CCListener listener = listeners.Single(l => l.Name == startingListenerName);
+            // CCListener listener = listeners.Single(l => l.Name == startingListenerName);
+
+            // Get root listeners.  These are listeners that aren't the targets of any context.
+            CCListener listener = null;
+
             Direction dir = Direction.Center;
             placedListeners.Add(((0, 0), listener, Direction.Center));
             box = new Box(canvasController.Canvas);
