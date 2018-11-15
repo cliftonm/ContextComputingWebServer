@@ -5,7 +5,7 @@ using System.Reflection;
 
 namespace ContextComputing
 {
-    public class TypeListener : CCListener
+    public class InstanceListener : CCListener
     {
         private const BindingFlags bindingFlags = BindingFlags.Instance |
                 BindingFlags.Static |
@@ -16,13 +16,13 @@ namespace ContextComputing
 
         public override string Name { get { return t.Name; } }
 
-        public TypeListener(Type t)
+        public InstanceListener(Type t)
         {
             this.t = t;
         }
 
         // TODO: This should return context names or the parameter type name if no context attribute is provided.
-        // TODO: Duplicate code with InstanceListener
+        // TODO: Duplicate code with TypeListener
         public override IEnumerable<string> GetParameters()
         {
             // Only one "Execute" method per class is supported.

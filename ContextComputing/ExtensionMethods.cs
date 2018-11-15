@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 
 namespace ContextComputing
@@ -13,13 +12,5 @@ namespace ContextComputing
 
             return implements;
         }
-    }
-
-    public abstract class CCListener
-    {
-        public abstract string Name { get; }
-
-        public abstract IEnumerable<string> GetParameters();
-        public abstract List<string> GetContextsPublished();
     }
 }

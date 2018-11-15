@@ -49,11 +49,11 @@ namespace ContextComputing
         public List<string> Contexts { get; protected set; }
 
         /// <summary>
-        /// Comma-delimited contexts.
+        /// One context.
         /// </summary>
-        public DependentContextsAttribute(string contexts)
+        public DependentContextsAttribute(string context)
         {
-            Contexts = new List<string>(contexts.Split(',').Select(c => c.Trim()));
+            Contexts = new List<string>() { context };
         }
 
         public DependentContextsAttribute(string[] contexts)

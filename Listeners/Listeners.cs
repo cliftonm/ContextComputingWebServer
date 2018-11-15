@@ -27,20 +27,7 @@ namespace Listeners
 
         public static void InitializeContext(ContextRouter contextRouter)
         {
-            //contextRouter
-            //    .Register<Wait2>()
-            //    .Register<Wait2Again, Wait2>();
-
-            contextRouter
-               .AssociateType<HttpContext, GetPage>();
-                // .Register<HelloWorld, GetPage>()
-                // .Register<GetPeople>()
-                // .Register<GetPets>();
-                // TODO: param order dependency
-                // .TriggerOn<Render, People, Pets, GetPage>()
-                // .TriggerOn<Count, People, GetPage>()
-                // .TriggerOn<Count, Pets, GetPage>();
-
+            contextRouter.AssociateType<HttpContext, GetPage>();
             AutoRegistration.AutoRegister<Listener>(contextRouter);
         }
     }
@@ -70,18 +57,6 @@ namespace Listeners
             sb.Append("</table>");
 
             httpContext.Response.Write(sb.ToString());
-        }
-
-        [Listener]
-        public void Count(ContextRouter router, ContextItem item, People people, [Context(nameof(GetPage))] HttpContext httpContext)
-        {
-            httpContext.Response.Write(String.Format("<p>There are {0} people.</p>", people.GetPeople().Count));
-        }
-
-        [Listener]
-        public void Count(ContextRouter router, ContextItem item, Pets pets, [Context(nameof(GetPage))] HttpContext httpContext)
-        {
-            httpContext.Response.Write(String.Format("<p>There are {0} pet types.</p>", pets.GetPets().Count));
         }
 
         [Listener]
@@ -131,6 +106,18 @@ namespace Listeners
             // Simulate the query having taken some time.
             Thread.Sleep(750);
             router.Publish<Pets>(pets, item.AsyncContext);
+        }
+
+        [Listener]
+        public void Count(ContextRouter router, ContextItem item, People people, [Context(nameof(GetPage))] HttpContext httpContext)
+        {
+            httpContext.Response.Write(String.Format("<p>There are {0} people.</p>", people.GetPeople().Count));
+        }
+
+        [Listener]
+        public void Count(ContextRouter router, ContextItem item, Pets pets, [Context(nameof(GetPage))] HttpContext httpContext)
+        {
+            httpContext.Response.Write(String.Format("<p>There are {0} pet types.</p>", pets.GetPets().Count));
         }
     }
 

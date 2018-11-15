@@ -11,6 +11,7 @@ namespace ContextComputing
     internal class Trigger
     {
         public List<string> Contexts { get { return masterPendingContexts.Select(mpc => mpc.ContextName).ToList(); } }
+        // public List<string> DependentContexts { get; protected set; }
         public MethodInfo Method { get; protected set; }
 
         /// <summary>
@@ -33,6 +34,7 @@ namespace ContextComputing
             ListenerType = listenerType;
             Method = method;
             contexts.ForEach(c => masterPendingContexts.Add(new PendingContext(c)));
+            // DependentContexts = dependentContexts?.ToList() ?? new List<string>();
             dependentContexts?.ForEach(c => masterPendingContexts.Add(new DependentPendingContext(c)));
         }
 

@@ -1,4 +1,6 @@
-﻿using System;
+﻿#define MyContext
+
+using System;
 using System.Reflection;
 using System.Windows.Forms;
 
@@ -23,8 +25,11 @@ namespace Designer
 
             AppDomain.CurrentDomain.ReflectionOnlyAssemblyResolve += ReflectionOnlyAssemblyResolve;
             ContextRouter myContextRouter = InitializeMyContextRouter();
-            // ContextRouter otherContextRouter = myContextRouter;
+#if MyContext
+            ContextRouter otherContextRouter = myContextRouter;
+#else
             ContextRouter otherContextRouter = Listeners.Listeners.InitializeContext();
+#endif
             myContextRouter.OnException += (_, cei) => MessageBox.Show(cei.Exception.ToString(), "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
 
             WireUpEvents(myContextRouter);
@@ -62,19 +67,21 @@ namespace Designer
 				//canvas.Invalidate();
         */
 
-        [ContextComputing.PublishesAttribute(
-            @"ListenerTextBox,
-            LogTextBox,
-            ListenerListBox,
-            ContextListBox,
-            ParametersListBox,
-            PublishesListBox,
-            ActiveListenersListBox,
-            ContextTypeMapsListBox,
-            OtherContextRouter,
-            CanvasController,
-            StartingListener"
-            )]
+        [ContextComputing.Publishes(new string[]
+            {
+                "ListenerTextBox",
+                "LogTextBox",
+                "ListenerListBox",
+                "ContextListBox",
+                "ParametersListBox",
+                "PublishesListBox",
+                "ActiveListenersListBox",
+                "ContextTypeMapsListBox",
+                "OtherContextRouter",
+                "CanvasController",
+                "StartingListener"
+            }
+        )]
         protected void Execute(ContextRouter router, ContextItem item, ContextRouter otherContextRouter)
         {
             // Publish after the form is shown, otherwise the InvokeRequired will return false even though
@@ -89,8 +96,11 @@ namespace Designer
             router.Publish<ContextTypeMapsListBox>(lbContextTypeMaps, isStatic: true);
             router.Publish<OtherContextRouter>(otherContextRouter, isStatic: true);
             router.Publish<CanvasController>(canvasController, isStatic: true);
+#if MyContext
+            router.Publish<StartingListener>(nameof(CPDesigner));
+#else
             router.Publish<StartingListener>("HelloWorld");
-            // router.Publish<StartingListener>(nameof(CPDesigner));
+#endif
         }
 
         protected ContextRouter InitializeMyContextRouter()
@@ -100,8 +110,7 @@ namespace Designer
             ContextRouter cr = new ContextRouter();
             cr
                 .Register<Startup>(this)
-                .TriggerOn<DrawContext, OtherContextRouter, CanvasController, StartingListener>()
-                ;
+                .TriggerOn<DrawContext, OtherContextRouter, CanvasController, StartingListener>();
 
             AutoRegistration.AutoRegister<Listener>(cr);
 

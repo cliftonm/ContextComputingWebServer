@@ -48,8 +48,10 @@
     <Compile Include="ContextExceptionInfo.cs" />
     <Compile Include="ContextItem.cs" />
     <Compile Include="ContextRouter.cs" />
+    <Compile Include="ExtensionMethods.cs" />
     <Compile Include="Interfaces.cs" />
-    <Compile Include="Listener\Listener.cs" />
+    <Compile Include="Listener\CCListener.cs" />
+    <Compile Include="Listener\InstanceListener.cs" />
     <Compile Include="LogInfo.cs" />
     <Compile Include="Listener\MethodListener.cs" />
     <Compile Include="PendingContext.cs" />

@@ -10,11 +10,13 @@ namespace ContextComputing
 
         public override string Name { get { return method.Name; } }
 
-        public MethodListener(MethodInfo method)
+        public MethodListener(MethodInfo method, List<string> dependentContexts)
         {
             this.method = method;
+            DependentContexts = dependentContexts;
         }
 
+        // TODO: This should return context names or the parameter type name if no context attribute is provided.
         public override IEnumerable<string> GetParameters()
         {
             var paramTypes = method.GetParameters().Skip(2);

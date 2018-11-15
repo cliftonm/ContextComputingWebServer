@@ -1,4 +1,8 @@
-﻿using System;
+﻿#define EXPANDO1
+#define EXPANDO2
+#define DRAW_CONNECTORS
+
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
@@ -175,29 +179,35 @@ namespace Designer
                 }
             }
 
-            (int, int, Direction) GetFreeCell(CCListener forListener, (int x, int y) srcCell, List<(int x, int y)> requiredCells, (int x, int y, Direction dir)[] tryPoints, IEnumerable<(int x, int y)> occupiedPoints)
+            (int, int, Direction) GetFreeCell(
+                CCListener forListener, 
+                (int x, int y) srcCell, 
+                List<(int x, int y)> requiredCells, 
+                (int x, int y, Direction dir)[] tryPoints, 
+                IEnumerable<(int x, int y)> occupiedPoints)
             {
                 (int, int, Direction) p = (0, 0, Direction.None);
                 bool found = false;
+                var opl = occupiedPoints.ToList();
 
                 foreach (var pointToTry in tryPoints)
                 {
+                    List<(int x, int y)> cellsMustBeEmpty = new List<(int x, int y)>();
                     int x = pointToTry.x + srcCell.x;
                     int y = pointToTry.y + srcCell.y;
 
                     foreach (var rp in requiredCells)
                     {
-                        if (!occupiedPoints.Any(oc => oc.x == x + rp.x && oc.y == y + rp.y))
+                        cellsMustBeEmpty.Add((x + rp.x, y+rp.y));
+                    }
+
+                    {
+                        if (!cellsMustBeEmpty.Any(op => opl.Exists(c => c.x == op.x && c.y == op.y)))
                         {
                             p = (x, y, pointToTry.dir);
                             found = true;
                             break;
                         }
-                    }
-
-                    if (found)
-                    {
-                        break;
                     }
                 }
 
@@ -206,22 +216,21 @@ namespace Designer
                     // Spiral out in a 10x10 grid centeered around the current location to find a free cell.
                     foreach (var pointToTry in Spiral(10, 10))
                     {
+                        List<(int x, int y)> cellsMustBeEmpty = new List<(int x, int y)>();
                         int x = pointToTry.x + srcCell.x;
                         int y = pointToTry.y + srcCell.y;
 
                         foreach (var rp in requiredCells)
                         {
-                            if (!occupiedPoints.Any(oc => oc.x == x + rp.x && oc.y == y + rp.y))
-                            {
-                                p = (x, y, Direction.Center);
-                                found = true;
-                                break;
-                            }
+                            cellsMustBeEmpty.Add((x + rp.x, y + rp.y));
                         }
 
-                        if (found)
+
+                        if (!cellsMustBeEmpty.Any(op => opl.Exists(c => c.x == op.x && c.y == op.y)))
                         {
-                            break;
+                            p = (x, y, Direction.Center);
+                                found = true;
+                                break;
                         }
                     }
                 }
@@ -259,13 +268,13 @@ namespace Designer
                         // TODO: FIX KLUDGE
                         var boxTextSize = box.TextSize;
 
-                        /*
+#if EXPANDO1
                         if (boxTextSize.Width > 100)
                         {
                             requiredCells.Add((-1, 0));
                             requiredCells.Add((1, 0));
                         }
-                        */
+#endif
 
                         switch (sourceListenerDir)
                         {
@@ -308,14 +317,14 @@ namespace Designer
                         placedListeners.Add(((p.x, p.y), tl, p.dir));
                         occupiedCells.Add(((p.x, p.y), box));
 
-                        /*
+#if EXPANDO2
                         // TODO: FIX KLUDGE
                         if (boxTextSize.Width > 100)
                         {
                             occupiedCells.Add(((p.x - 1, p.y), null));
                             occupiedCells.Add(((p.x + 1, p.y), null));
                         }
-                        */
+#endif
 
                         // PlaceTargetListeners((p.x, p.y), tl, p.dir);
                     });
@@ -374,8 +383,18 @@ namespace Designer
             // Start with entry point type.
             // CCListener listener = listeners.Single(l => l.Name == startingListenerName);
 
-            // Get root listeners.  These are listeners that aren't the targets of any context.
-            CCListener listener = null;
+            // Get root listeners.  A root listener is the method(s) that handles a published context or 
+            // has a dependent context that no other listeners publish, and also not a type listener.
+            // TODO: Excluding type listeners is probably not the right thing to do here, but not sure yet how to fix it if we include type listeners.
+            var publishedContexts = listeners.Aggregate(new List<string>(), (acc, l) => { acc.AddRange(l.GetContextsPublished()); return acc; });
+            var rootListeners = listeners.Where(l =>
+                !(l is TypeListener) &&
+                !l.GetParameters().Any(p => publishedContexts.Contains(p)) &&
+                !l.DependentContexts.Any(dc => publishedContexts.Contains(dc))).ToList();
+
+            // TODO: Handle multiple root listeners.
+            // TODO: Error if no root listeners found!
+            CCListener listener = rootListeners.First();
 
             Direction dir = Direction.Center;
             placedListeners.Add(((0, 0), listener, Direction.Center));
@@ -395,10 +414,12 @@ namespace Designer
             PlaceTargetListeners((0, 0), listener, dir);
             PlaceShapes();
 
-            occupiedCells.ForEach(oc => canvasController.AddElement(oc.el));
+            occupiedCells.Where(oc => oc.el != null).ForEach(oc => canvasController.AddElement(oc.el));
 
             var connectors = new List<GraphicElement>();
+            List<(DiagonalConnector con, GraphicElement src, GraphicElement trgt)> connections = new List<(DiagonalConnector, GraphicElement, GraphicElement)>();
 
+#if DRAW_CONNECTORS
             listeners.ForEach(l =>
             {
                 var publishes = l.GetContextsPublished();
@@ -413,32 +434,45 @@ namespace Designer
                         {
                             if (listenerShapes.TryGetValue(lt.Name, out GraphicElement targetElement))
                             {
-                                GetConnectionAnchorPoints(sourceElement, targetElement, out Point p1, out Point p2);
-                                var connector = new DiagonalConnector(canvasController.Canvas, p1, p2);
-                                connector.Text = context; // String.Join(", ", publishes); // context;
-                                connector.TextAlign = ContentAlignment.MiddleCenter;
-                                connector.EndCap = AvailableLineCap.Arrow;
-                                connector.BorderPen = new Pen(Color.Green);
-                                connector.UpdateProperties();
-                                canvasController.AddElement(connector);
-                                connectors.Add(connector);
+                                // , out (DynamicConnector dc, GraphicElement src, GraphicElement trgt) existingConnector
+                                var connExists = connections.Exists(c => c.src == sourceElement && c.trgt == targetElement);
 
-                                ConnectionPoint cp1 = new ConnectionPoint(GripType.Start, p1);
-                                ConnectionPoint cp2 = new ConnectionPoint(GripType.End, p2);
+                                if (!connExists)
+                                {
+                                    GetConnectionAnchorPoints(sourceElement, targetElement, out Point p1, out Point p2);
+                                    var connector = new DiagonalConnector(canvasController.Canvas, p1, p2);
+                                    connections.Add((connector, sourceElement, targetElement));
+                                    connector.Text = context; // String.Join(", ", publishes); // context;
+                                    connector.TextAlign = ContentAlignment.MiddleCenter;
+                                    connector.EndCap = AvailableLineCap.Arrow;
+                                    connector.BorderPen = new Pen(Color.Green);
+                                    connector.UpdateProperties();
+                                    canvasController.AddElement(connector);
+                                    connectors.Add(connector);
 
-                                Connection c1 = new Connection() { ToElement = connector, ToConnectionPoint = cp2, ElementConnectionPoint = cp1 };
-                                Connection c2 = new Connection() { ToElement = connector, ToConnectionPoint = cp1, ElementConnectionPoint = cp2 };
+                                    ConnectionPoint cp1 = new ConnectionPoint(GripType.Start, p1);
+                                    ConnectionPoint cp2 = new ConnectionPoint(GripType.End, p2);
 
-                                sourceElement.Connections.Add(c2);
-                                targetElement.Connections.Add(c1);
+                                    Connection c1 = new Connection() { ToElement = connector, ToConnectionPoint = cp2, ElementConnectionPoint = cp1 };
+                                    Connection c2 = new Connection() { ToElement = connector, ToConnectionPoint = cp1, ElementConnectionPoint = cp2 };
 
-                                connector.SetConnection(GripType.Start, sourceElement);
-                                connector.SetConnection(GripType.End, targetElement);
+                                    sourceElement.Connections.Add(c2);
+                                    targetElement.Connections.Add(c1);
+
+                                    connector.SetConnection(GripType.Start, sourceElement);
+                                    connector.SetConnection(GripType.End, targetElement);
+                                }
+                                else
+                                {
+                                    var conn = connections.Single(c => c.src == sourceElement && c.trgt == targetElement);
+                                    conn.con.Text += "\r\n" + context;
+                                }
                             }
                         });
                     });
                 }
             });
+#endif
 
             canvasController.SelectElements(connectors);
             canvasController.Topmost();

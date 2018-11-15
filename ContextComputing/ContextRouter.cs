@@ -46,10 +46,10 @@ namespace ContextComputing
         public List<CCListener> GetAllListeners()
         {
             List<CCListener> ret = new List<CCListener>();
-            contextListeners.ForEach(kvp => ret.AddRange(kvp.Value.Select(v => new TypeListener(v.listener.GetType()))));
+            contextListeners.ForEach(kvp => ret.AddRange(kvp.Value.Select(v => new InstanceListener(v.listener.GetType()))));
             contextListenerTypes.ForEach(kvp => ret.AddRange(kvp.Value.Select(t => new TypeListener(t))));
             ret.AddRange(typeContexts.Select(tc => new TypeListener(tc.Key)));
-            ret.AddRange(triggers.Select(t => t.Method != null ? (CCListener)new MethodListener(t.Method) : new TypeListener(t.ListenerType)));
+            ret.AddRange(triggers.Select(t => t.Method != null ? (CCListener)new MethodListener(t.Method, t.Contexts) : new TypeListener(t.ListenerType)));
 
             return ret.DistinctBy(l => l.Name).ToList();
         }
@@ -73,7 +73,7 @@ namespace ContextComputing
             {
                 if (t.Contexts.Contains(context))
                 {
-                    ret.Add(t.Method != null ? (CCListener)new MethodListener(t.Method) : new TypeListener(t.ListenerType));
+                    ret.Add(t.Method != null ? (CCListener)new MethodListener(t.Method, t.Contexts) : new TypeListener(t.ListenerType));
                 }
             });
 
