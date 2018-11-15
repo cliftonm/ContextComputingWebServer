@@ -244,7 +244,7 @@ namespace Designer
                     
                     // ToList because we're adding to placedListeners as we iterate targetListeners, so we need to capture
                     // this way the list looks now.
-                    var notPlacedListeners = targetListeners.Where(tl => !placedListeners.Any(pl => pl.listener == tl)).ToList();
+                    var notPlacedListeners = targetListeners.Where(tl => !placedListeners.Any(pl => pl.listener.Name == tl.Name)).ToList();
 
                     notPlacedListeners.ForEach(tl =>
                     {
