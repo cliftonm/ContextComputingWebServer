@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Reflection;
 
@@ -96,7 +97,15 @@ namespace ContextComputing
 
             if (attr != null)
             {
-                ret.AddRange(attr.ConstructorArguments[0].Value.ToString().Split(',').Select(c => c.Trim()));
+                if (attr.ConstructorArguments[0].ArgumentType.IsArray)
+                {
+                    var args = (IReadOnlyCollection<CustomAttributeTypedArgument>)attr.ConstructorArguments[0].Value;
+                    ret.AddRange(args.Select(arg=>arg.Value.ToString().Trim()));
+                }
+                else
+                {
+                    ret.Add(attr.ConstructorArguments[0].Value.ToString());
+                }
             }
 
             return ret;
